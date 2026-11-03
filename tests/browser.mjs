@@ -11,7 +11,8 @@ const fixture = (name) => join(repo, 'tests', 'fixtures', name);
 const evidence = join(repo, 'test-results');
 const types = {
   '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.mp4': 'video/mp4',
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
+  '.webp': 'image/webp', '.mp4': 'video/mp4',
 };
 const server = createServer(async (request, response) => {
   try {
@@ -301,20 +302,37 @@ try {
   await phone.locator('#play').tap();
   console.log('P-08 PASS: móvil emulado, giro, salida táctil y estado SBS preservado sin pantalla completa');
 
-  for (const [mode, extension] of [['anaglyph', 'anaglifo.png'], ['image', 'sbs.png'], ['video', 'sbs.mp4']]) {
+  for (const [mode, scenes] of [
+    ['anaglyph', ['bosque', 'ciudad-nocturna']],
+    ['image', ['arrecife', 'galeria']],
+    ['video', ['canon', 'metropolis']],
+  ]) {
     await page.locator('[data-mode="' + mode + '"]').click();
     assert.equal(await page.locator('#demos button:visible').count(), 2);
-    for (const scene of ['orbital', 'constelacion']) {
-      await page.locator('[data-demo="' + scene + '"]').click();
+    let previousDemo = false;
+    for (const scene of scenes) {
+      const demo = page.locator('[data-demo="' + scene + '"]');
+      await demo.scrollIntoViewIfNeeded();
+      await page.waitForFunction((id) => document.querySelector('[data-demo="' + id + '"] img').naturalWidth === 320, scene);
+      const releases = await page.evaluate(() => window.testReleased.length);
+      await demo.click();
       await page.waitForFunction((name) => document.getElementById('filename').textContent === name,
-        scene + '-' + extension);
+        scene + (mode === 'video' ? '.mp4' : '.jpg'));
       assert(await page.locator('#screen').isVisible());
+      if (previousDemo) {
+        assert((await page.evaluate(() => window.testReleased.length)) > releases);
+      }
+      previousDemo = true;
       if (mode === 'video') {
-        assert((await readVideo(page)).paused);
+        const state = await readVideo(page);
+        assert(state.paused && Math.abs(state.duration - 15) < 0.01);
         await page.locator('#play').click();
         await page.waitForFunction(() => window.testVideos.at(-1).currentTime > 0.2);
         await page.locator('#play').click();
       }
+      const before = await fingerprints(page);
+      await range(page, 'scale', 135);
+      assert(await fingerprints(page, before));
     }
   }
   console.log('Demos PASS: seis muestras integradas y ambos videos reproducibles');

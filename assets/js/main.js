@@ -19,7 +19,48 @@ let settings = defaults();
 let request = 0;
 let loading = false;
 let demoFetch = null;
-const demoFormats = { anaglyph: 'anaglifo.png', image: 'sbs.png', video: 'sbs.mp4' };
+const demos = {
+  anaglyph: [
+    ['bosque', 'Bosque umbrío', 'Sendero entre árboles y vegetación.'],
+    ['ciudad-nocturna', 'Ciudad nocturna', 'Canal, puentes y fachadas iluminadas.'],
+  ],
+  image: [
+    ['arrecife', 'Arrecife azul', 'Cardumen sobre un paisaje de coral.'],
+    ['galeria', 'Galería de luz', 'Interior con columnas y luz lateral.'],
+  ],
+  video: [
+    ['canon', 'Cañón estratificado', 'Recorrido entre roca, agua y vegetación.'],
+    ['metropolis', 'Metrópolis futura', 'Avenida nocturna con tráfico en movimiento.'],
+  ],
+};
+
+function showDemos() {
+  const type = { anaglyph: 'Anaglifo', image: 'Imagen SBS', video: 'Video SBS · 0:15' }[mode];
+  const cards = demos[mode].map(([id, title, description]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ghost demo';
+    button.dataset.demo = id;
+    const thumbnail = new Image(320, 180);
+    thumbnail.alt = '';
+    thumbnail.loading = 'lazy';
+    thumbnail.src = new URL('../media/' + id + '.webp', import.meta.url);
+    const copy = document.createElement('span');
+    const name = document.createElement('strong');
+    name.textContent = title;
+    const summary = document.createElement('small');
+    summary.textContent = description;
+    const metadata = document.createElement('small');
+    metadata.textContent = type;
+    metadata.className = 'demo-type';
+    copy.append(name, summary, metadata);
+    button.append(thumbnail, copy);
+    button.addEventListener('click', () => importFile(null, id));
+    return button;
+  });
+  $('demo-options').replaceChildren(...cards);
+  $('demos').hidden = false;
+}
 
 function errorMessage(message = '') {
   $('error').textContent = message;
@@ -139,7 +180,7 @@ function chooseMode(next) {
   $('empty-title').textContent = 'Importa ' + (mode === 'video' ? 'un video SBS' : mode === 'image' ? 'una imagen SBS' : 'un anaglifo');
   $('empty-copy').textContent = formats + '. También puedes arrastrar el archivo aquí.';
   $('file').accept = acceptFor(mode);
-  $('demos').hidden = false;
+  showDemos();
   for (const id of ['file', 'import', 'replace']) $(id).disabled = false;
   errorMessage();
   makeControls();
@@ -159,7 +200,7 @@ async function importFile(file, demo) {
   errorMessage();
   try {
     if (demo) {
-      const name = demo + '-' + demoFormats[mode];
+      const name = demo + (mode === 'video' ? '.mp4' : '.jpg');
       demoFetch = new AbortController();
       try {
         const response = await fetch(new URL('../media/' + name, import.meta.url), {
@@ -194,9 +235,6 @@ async function importFile(file, demo) {
 }
 
 for (const button of buttons) button.addEventListener('click', () => chooseMode(button.dataset.mode));
-for (const button of document.querySelectorAll('[data-demo]')) {
-  button.addEventListener('click', () => importFile(null, button.dataset.demo));
-}
 for (const id of ['import', 'replace']) $(id).addEventListener('click', () => $('file').click());
 $('file').addEventListener('change', ({ target }) => {
   importFile(target.files[0]);

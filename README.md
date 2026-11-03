@@ -10,7 +10,17 @@ Para preparar el sitio manualmente, copia `index.html` y `assets/` a una carpeta
 
 ## Uso
 
-Cada módulo incluye dos demos, **Órbita** y **Constelación**. Selecciona un módulo y elige una en **Demos del módulo**. Las escenas se renderizaron desde dos cámaras virtuales y están disponibles como anaglifo, imagen SBS y video SBS.
+Selecciona un módulo y abre una escena en **Demos del módulo**.
+
+| Módulo | Demos | Formato |
+|---|---|---|
+| Anaglifo | Bosque umbrío y Ciudad nocturna | JPG de 960 × 540 |
+| Imagen SBS | Arrecife azul y Galería de luz | JPG de 1920 × 540 |
+| Video SBS | Cañón estratificado y Metrópolis futura | MP4 H.264 de 1920 × 540, 24 FPS, 15 s cada uno |
+
+Los recursos son originales del proyecto. Las seis escenas y sus miniaturas se renderizan con Three.js desde geometría y materiales propios, sin modelos, fotografías, texturas ni pistas externas. Cada par usa cámaras paralelas con desplazamiento binocular y frústums compensados. En anaglifo, el rojo conserva la luminancia izquierda y verde y azul la derecha. En video, ambas cámaras renderizan la misma escena en el mismo instante y el resultado se codifica como un único MP4 sin audio.
+
+El generador y Three.js se usan solo en desarrollo. Para reproducir la biblioteca, ejecuta `npm --prefix tests ci` y `node tests/generate-demos.mjs` con Chrome, Python e imageio-ffmpeg instalados. Ejecuta `python tests/verify-demos.py` con NumPy e imageio-ffmpeg para comprobar formatos, duración y diferencias de píxeles, y generar hojas de contacto en `test-results/`.
 
 1. Elige **Anaglifo**, **Imagen SBS** o **Video SBS**. Selecciona un archivo o arrástralo al monitor.
 2. Usa lentes rojo-cian con un anaglifo existente. Ajusta escala, brillo y contraste. Se admiten JPG, JPEG, PNG y WebP.
