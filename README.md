@@ -50,7 +50,7 @@ El editor trabaja con material que ya contiene información estereoscópica. La 
 
 Ejecuta `npm --prefix tests ci` y `npm --prefix tests test` con Chrome instalado. El script sirve el proyecto bajo el prefijo de GitHub Pages y guarda capturas en `test-results/`. Para verificar la publicación, establece `STUDIO_URL` en la dirección HTTPS del sitio antes de repetir el comando.
 
-Consulta [el sistema visual y las decisiones aplicadas](DESIGN.md) y [el contexto de producto](PRODUCT.md).
+Consulta [los resultados y las capturas](tests/results.md), [el sistema visual y las decisiones aplicadas](DESIGN.md) y [el contexto de producto](PRODUCT.md).
 
 Las muestras procedurales de `tests/fixtures` contienen perspectivas generadas por separado. El anaglifo combina el canal rojo de la izquierda y los canales verde y azul de la derecha. El video y la imagen SBS concatenan ambas vistas.
 

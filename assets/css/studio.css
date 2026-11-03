@@ -17,7 +17,7 @@ body { margin: 0; min-width: 300px; }
 [hidden] { display: none !important; }
 button, input { font: inherit; }
 button { cursor: pointer; touch-action: manipulation; transition: transform 160ms var(--ease-out), background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out; }
-button:active:enabled { transform: scale(.97); }
+button:active:enabled:not(:focus-visible) { transform: scale(.97); transition-duration: 90ms; }
 button:disabled { cursor: default; opacity: .48; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 ::selection { color: #142520; background: var(--accent); }
@@ -140,5 +140,5 @@ dialog dd { margin: 4px 0 0; color: var(--muted); line-height: 1.55; font-size: 
 }
 @media (prefers-reduced-motion: reduce) {
   button { transition-property: background-color, border-color, color; }
-  button:active:enabled { transform: none; }
+  button:active:enabled:not(:focus-visible) { transform: none; }
 }
