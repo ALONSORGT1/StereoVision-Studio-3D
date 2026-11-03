@@ -10,6 +10,8 @@ Para preparar el sitio manualmente, copia `index.html` y `assets/` a una carpeta
 
 ## Uso
 
+Cada módulo incluye dos demos, **Órbita** y **Constelación**. Selecciona un módulo y elige una en **Demos del módulo**. Las escenas se renderizaron desde dos cámaras virtuales y están disponibles como anaglifo, imagen SBS y video SBS.
+
 1. Elige **Anaglifo**, **Imagen SBS** o **Video SBS**. Selecciona un archivo o arrástralo al monitor.
 2. Usa lentes rojo-cian con un anaglifo existente. Ajusta escala, brillo y contraste. Se admiten JPG, JPEG, PNG y WebP.
 3. En SBS cada mitad contiene una perspectiva. Ajusta escala y alineación en el inspector y activa **Intercambiar ojos** si el orden del medio es inverso. El desplazamiento se reparte entre ambas vistas y se expresa como porcentaje de la región de cada ojo.

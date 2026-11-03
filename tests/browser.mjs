@@ -301,6 +301,23 @@ try {
   await phone.locator('#play').tap();
   console.log('P-08 PASS: móvil emulado, giro, salida táctil y estado SBS preservado sin pantalla completa');
 
+  for (const [mode, extension] of [['anaglyph', 'anaglifo.png'], ['image', 'sbs.png'], ['video', 'sbs.mp4']]) {
+    await page.locator('[data-mode="' + mode + '"]').click();
+    assert.equal(await page.locator('#demos button:visible').count(), 2);
+    for (const scene of ['orbital', 'constelacion']) {
+      await page.locator('[data-demo="' + scene + '"]').click();
+      await page.waitForFunction((name) => document.getElementById('filename').textContent === name,
+        scene + '-' + extension);
+      assert(await page.locator('#screen').isVisible());
+      if (mode === 'video') {
+        assert((await readVideo(page)).paused);
+        await page.locator('#play').click();
+        await page.waitForFunction(() => window.testVideos.at(-1).currentTime > 0.2);
+        await page.locator('#play').click();
+      }
+    }
+  }
+  console.log('Demos PASS: seis muestras integradas y ambos videos reproducibles');
   assert.deepEqual(problems, []);
   console.log(process.env.STUDIO_URL
     ? 'P-09 PASS: URL configurada sin errores de red o consola en escritorio y móvil emulado'

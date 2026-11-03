@@ -143,9 +143,13 @@ export class MediaLoader {
     }
   }
 
-  clear() {
+  cancelPending() {
     this.#pending?.abort();
     this.#pending = null;
+  }
+
+  clear() {
+    this.cancelPending();
     release(this.#active);
     this.#active = null;
   }

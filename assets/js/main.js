@@ -18,6 +18,8 @@ let media = null;
 let settings = defaults();
 let request = 0;
 let loading = false;
+let demoFetch = null;
+const demoFormats = { anaglyph: 'anaglifo.png', image: 'sbs.png', video: 'sbs.mp4' };
 
 function errorMessage(message = '') {
   $('error').textContent = message;
@@ -122,6 +124,7 @@ function showMedia() {
 function chooseMode(next) {
   if (mode === next) return;
   request++;
+  demoFetch?.abort();
   loading = false;
   playback.bind(null);
   renderer.setMedia(null);
@@ -136,6 +139,7 @@ function chooseMode(next) {
   $('empty-title').textContent = 'Importa ' + (mode === 'video' ? 'un video SBS' : mode === 'image' ? 'una imagen SBS' : 'un anaglifo');
   $('empty-copy').textContent = formats + '. También puedes arrastrar el archivo aquí.';
   $('file').accept = acceptFor(mode);
+  $('demos').hidden = false;
   for (const id of ['file', 'import', 'replace']) $(id).disabled = false;
   errorMessage();
   makeControls();
@@ -143,14 +147,32 @@ function chooseMode(next) {
   showMedia();
 }
 
-async function importFile(file) {
-  if (!file || !mode) return;
+async function importFile(file, demo) {
+  if ((!file && !demo) || !mode) return;
   const token = ++request;
+  demoFetch?.abort();
+  demoFetch = null;
+  loader.cancelPending();
   loading = true;
-  $('status').textContent = 'Validando archivo…';
+  $('status').textContent = demo ? 'Cargando demo…' : 'Validando archivo…';
   $('vr').disabled = true;
   errorMessage();
   try {
+    if (demo) {
+      const name = demo + '-' + demoFormats[mode];
+      demoFetch = new AbortController();
+      try {
+        const response = await fetch(new URL('../media/' + name, import.meta.url), {
+          signal: demoFetch.signal,
+        });
+        if (!response.ok) throw new Error('Demo no disponible');
+        const blob = await response.blob();
+        file = new File([blob], name, { type: blob.type });
+      } catch {
+        throw new Error('No se pudo cargar la demo. Vuelve a intentarlo o importa un archivo local.');
+      }
+      if (token !== request) return;
+    }
     const candidate = await loader.load(file, mode);
     if (!candidate || token !== request) return;
     media = candidate;
@@ -163,6 +185,7 @@ async function importFile(file) {
     errorMessage(error.message);
   } finally {
     if (token === request) {
+      demoFetch = null;
       loading = false;
       showMedia();
       playback.bind(media?.mode === 'video' ? media.element : null);
@@ -171,6 +194,9 @@ async function importFile(file) {
 }
 
 for (const button of buttons) button.addEventListener('click', () => chooseMode(button.dataset.mode));
+for (const button of document.querySelectorAll('[data-demo]')) {
+  button.addEventListener('click', () => importFile(null, button.dataset.demo));
+}
 for (const id of ['import', 'replace']) $(id).addEventListener('click', () => $('file').click());
 $('file').addEventListener('change', ({ target }) => {
   importFile(target.files[0]);

@@ -4,6 +4,7 @@ Run with Python, NumPy and imageio-ffmpeg installed.
 """
 
 import math
+import argparse
 from pathlib import Path
 import struct
 import subprocess
@@ -24,7 +25,7 @@ LIGHT = np.array([-0.5, 0.8, -0.6])
 LIGHT /= np.linalg.norm(LIGHT)
 
 
-def render(eye, phase):
+def render(eye, phase, scene):
     origin = np.array([eye, 1.3, 0.0])
     rays = np.stack(
         [PIXEL_X - eye / 5, PIXEL_Y - 0.12, np.ones_like(PIXEL_X)], axis=-1
@@ -50,6 +51,13 @@ def render(eye, phase):
         ([2.1, 1.06, 6.3], 1.06, [172, 147, 252]),
         ([-1.85, 1.14, 7.4], 1.14, [210, 220, 240]),
     ]
+    if scene == "constelacion":
+        spheres = [
+            ([0.65 * math.sin(phase), 0.68, 3.4], 0.62, [245, 215, 104]),
+            ([-1.28, 1.54, 4.7], 0.45, [247, 121, 181]),
+            ([1.55, 1.21, 5.3], 0.80, [107, 231, 165]),
+            ([-0.28, 2.13, 7.1], 0.67, [128, 168, 252]),
+        ]
     for center, radius, base in spheres:
         offset = np.array(center) - origin
         projection = rays @ offset
@@ -77,17 +85,21 @@ def png(path, rgb):
     )
 
 
-def stereo(phase):
-    return render(-0.13, phase), render(0.13, phase)
+def stereo(phase, scene):
+    return render(-0.13, phase, scene), render(0.13, phase, scene)
 
 
 def main():
-    OUTPUT.mkdir(exist_ok=True)
-    left, right = stereo(0)
-    png(OUTPUT / "orbital-sbs.png", np.concatenate([left, right], axis=1))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--scene", choices=["orbital", "constelacion"], default="orbital")
+    parser.add_argument("--output", type=Path, default=OUTPUT)
+    args = parser.parse_args()
+    args.output.mkdir(parents=True, exist_ok=True)
+    left, right = stereo(0, args.scene)
+    png(args.output / f"{args.scene}-sbs.png", np.concatenate([left, right], axis=1))
     gray = np.array([0.2126, 0.7152, 0.0722])
     right_luma = right @ gray
-    png(OUTPUT / "orbital-anaglifo.png", np.uint8(np.stack([left @ gray, right_luma, right_luma], axis=-1)))
+    png(args.output / f"{args.scene}-anaglifo.png", np.uint8(np.stack([left @ gray, right_luma, right_luma], axis=-1)))
 
     encoder = subprocess.Popen(
         [
@@ -98,13 +110,14 @@ def main():
             "-f", "lavfi", "-i", "sine=frequency=330:sample_rate=44100",
             "-c:v", "libx264", "-profile:v", "baseline", "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-af", "volume=0.08", "-movflags", "+faststart",
-            "-shortest", str(OUTPUT / "orbital-sbs.mp4"),
+            "-shortest", str(args.output / f"{args.scene}-sbs.mp4"),
         ],
         stdin=subprocess.PIPE,
     )
     with encoder.stdin:
         for frame in range(FPS * DURATION):
-            encoder.stdin.write(np.concatenate(stereo(2 * math.pi * frame / (FPS * DURATION)), axis=1).tobytes())
+            phase = 2 * math.pi * frame / (FPS * DURATION)
+            encoder.stdin.write(np.concatenate(stereo(phase, args.scene), axis=1).tobytes())
     if encoder.wait():
         raise RuntimeError("FFmpeg could not encode the test MP4")
 

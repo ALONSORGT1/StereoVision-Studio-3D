@@ -54,6 +54,12 @@ h1,h2,h3,p { margin: 0; }
 .pair { color: #ff8990; border-right-color: #80e5e8; }
 .movie::after { inset: 3px auto 3px 6px; border: 3px solid transparent; border-left: 5px solid currentColor; }
 .source-card { border-top: 1px solid var(--line); padding-top: 15px; margin-top: 18px; }
+.demos { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 14px; }
+.demo-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 7px; }
+.demo-options button { min-height: 44px; padding-inline: 4px; }
+@media (min-width: 851px) and (max-width: 1040px) {
+  .demo-options { grid-template-columns: 1fr; }
+}
 #filename { overflow-wrap: anywhere; margin-top: 6px; font-size: .85rem; }
 .metadata { margin-top: 5px; color: var(--muted); font: .72rem/1.55 var(--mono); }
 .source-card button, #reset { width: 100%; margin-top: 13px; }
