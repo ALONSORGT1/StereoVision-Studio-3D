@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101316">
+<meta name="description" content="Estudio local de visualización y calibración estereoscópica.">
+<title>StereoVision Studio 3D</title>
+<link rel="icon" href="./assets/img/optics.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./assets/css/studio.css">
+<script type="module" src="./assets/js/main.js"></script>
+</head>
+<body>
+<div class="studio" id="studio">
+  <header class="masthead">
+    <div class="brand"><img src="./assets/img/optics.svg" alt="" width="38" height="38"><div><h1>StereoVision <span>Studio 3D</span></h1><p>BANCO ÓPTICO DIGITAL</p></div></div>
+    <div class="header-actions"><span class="local"><i></i> Procesamiento local</span><button id="help" class="ghost" aria-haspopup="dialog">Ayuda</button></div>
+  </header>
+  <main class="workspace">
+    <aside class="rail" aria-label="Módulos multimedia">
+      <h2>FUENTE</h2>
+      <div class="modes" role="group" aria-label="Elegir módulo">
+        <button class="mode" data-mode="anaglyph" aria-pressed="false"><span class="mode-icon pair" aria-hidden="true"></span><span>Anaglifo<small>Rojo / cian</small></span></button>
+        <button class="mode" data-mode="image" aria-pressed="false"><span class="mode-icon stereo" aria-hidden="true"></span><span>Imagen SBS<small>Par de imágenes</small></span></button>
+        <button class="mode" data-mode="video" aria-pressed="false"><span class="mode-icon movie" aria-hidden="true"></span><span>Video SBS<small>Reproducción MP4</small></span></button>
+      </div>
+      <div class="source-card">
+        <h2>ARCHIVO ACTIVO</h2><p id="filename">Sin archivo</p><p id="metadata" class="metadata"></p>
+        <button id="replace" class="ghost" disabled>Importar archivo</button>
+      </div>
+    </aside>
+    <section class="monitor" aria-labelledby="monitor-title">
+      <header class="monitor-bar"><div><h2 id="monitor-title">Vista previa</h2><p class="instrument"><span id="mode-label">SIN FUENTE</span></p></div><button id="vr" class="ghost" disabled title="Disponible con contenido SBS">Visor VR</button></header>
+      <div class="viewport" id="viewport">
+        <canvas id="screen" aria-label="Visualización estereoscópica" hidden></canvas>
+        <div id="eye-guides" class="eye-guides" aria-hidden="true" hidden><span>IZQ</span><span>DER</span></div>
+        <div class="empty" id="empty">
+          <div class="reticle" aria-hidden="true"><div class="optic"><i></i><i></i></div></div>
+          <h3 id="empty-title">Prepara tu vista</h3>
+          <p id="empty-copy">Elige un módulo para importar tu contenido estereoscópico.</p>
+          <button id="import" class="primary" disabled>Elegir archivo</button>
+        </div>
+        <div class="vr-controls" hidden id="vr-controls"><span class="orientation">Gira el teléfono a posición horizontal.</span><button class="ghost" id="exit-vr">Salir de VR</button></div>
+      </div>
+      <div class="player" id="player" aria-label="Controles de reproducción" hidden>
+        <div class="transport"><button class="ghost" id="back" aria-label="Retroceder 5 segundos">−5 s</button><button class="primary" id="play">Reproducir</button><button class="ghost" id="forward" aria-label="Adelantar 5 segundos">+5 s</button></div>
+        <div class="timeline"><input id="seek" type="range" min="0" max="0" step=".01" value="0" aria-label="Posición de reproducción"><span id="time">0:00 / 0:00</span></div>
+        <label class="volume">Volumen <input id="volume" type="range" min="0" max="1" step=".01" value="1"></label>
+      </div>
+      <footer class="monitor-status"><span id="status" role="status">En espera de módulo</span><span id="mode-detail">LOCAL / 00</span></footer>
+      <p id="error" role="alert" hidden></p>
+    </section>
+    <aside class="inspector" aria-labelledby="inspector-title">
+      <header><h2 id="inspector-title">Calibración</h2></header>
+      <p id="calibration-hint" class="hint">Selecciona un módulo para ver sus instrumentos.</p>
+      <fieldset id="adjustments" disabled><legend class="sr-only">Ajustes de visualización</legend><div id="controls"></div></fieldset>
+      <button id="reset" class="ghost" disabled>Restablecer ajustes</button>
+    </aside>
+    <input type="file" id="file" hidden disabled>
+  </main>
+  <footer class="credits"><span>Creado por Alonso Ramírez Gutiérrez</span><span>STEREOVISION / STUDIO 3D</span></footer>
+</div>
+<dialog id="help-dialog" aria-labelledby="help-title">
+  <div class="dialog-head"><h2 id="help-title">Visualización estereoscópica</h2><form method="dialog"><button class="ghost" aria-label="Cerrar ayuda">Cerrar</button></form></div>
+  <dl><dt>Anaglifo rojo-cian</dt><dd>Abre una imagen anaglifo existente y utiliza lentes con filtro rojo en el ojo izquierdo y cian en el derecho.</dd>
+  <dt>Imagen y video SBS</dt><dd>Carga contenido con dos perspectivas de la misma escena, colocadas lado a lado. Usa Intercambiar ojos cuando el archivo tenga el orden inverso.</dd>
+  <dt>Calibración</dt><dd>La escala mantiene la proporción. Los desplazamientos ajustan la posición relativa de las vistas y se expresan como porcentaje del área por ojo.</dd>
+  <dt>Visor VR</dt><dd>Abre un archivo SBS, coloca el teléfono en horizontal y entra al visor. Usa Salir de VR o la tecla Esc para regresar al Studio.</dd></dl>
+</dialog>
+</body>
+</html>
