@@ -41,8 +41,9 @@ const playback = new VideoPlayback({
     $('mute').textContent = state.muted ? 'Activar sonido' : 'Silenciar';
     $('time').textContent = clock(state.currentTime) + ' / ' + clock(state.duration);
     if (media?.mode === 'video' && !loading) {
-      $('status').textContent = state.waiting ? 'Preparando fotograma…' :
+      const status = state.waiting ? 'Preparando fotograma…' :
         state.ended ? 'Finalizado' : state.paused ? 'En pausa' : 'En reproducción';
+      if ($('status').textContent !== status) $('status').textContent = status;
     }
   },
 });

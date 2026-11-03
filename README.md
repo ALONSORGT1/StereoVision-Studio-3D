@@ -48,6 +48,10 @@ El editor trabaja con material que ya contiene información estereoscópica. La 
 
 ## Pruebas y conclusiones
 
+Ejecuta `npm --prefix tests ci` y `npm --prefix tests test` con Chrome instalado. El script sirve el proyecto bajo el prefijo de GitHub Pages y guarda capturas en `test-results/`. Para verificar la publicación, establece `STUDIO_URL` en la dirección HTTPS del sitio antes de repetir el comando.
+
+Consulta [el sistema visual y las decisiones aplicadas](DESIGN.md) y [el contexto de producto](PRODUCT.md).
+
 Las muestras procedurales de `tests/fixtures` contienen perspectivas generadas por separado. El anaglifo combina el canal rojo de la izquierda y los canales verde y azul de la derecha. El video y la imagen SBS concatenan ambas vistas.
 
 La arquitectura permite comparar la asignación de ojos y los ajustes mediante el propio raster que ve el usuario. La reproducción usa el reloj y los estados de un solo elemento de video, y ambas vistas se componen a partir de la misma copia del fotograma. La entrada y salida del visor modifica la presentación del mismo medio en memoria.
