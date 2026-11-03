@@ -1,0 +1,11 @@
+{
+  "name": "stereovision-browser-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node browser.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.64.1"
+  }
+}

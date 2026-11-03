@@ -36,6 +36,9 @@ const playback = new VideoPlayback({
     $('seek').max = state.duration;
     $('seek').value = state.currentTime;
     $('volume').value = state.muted ? 0 : state.volume;
+    $('volume-range').hidden = state.volumeSupported === false;
+    $('mute').hidden = state.volumeSupported !== false;
+    $('mute').textContent = state.muted ? 'Activar sonido' : 'Silenciar';
     $('time').textContent = clock(state.currentTime) + ' / ' + clock(state.duration);
     if (media?.mode === 'video' && !loading) {
       $('status').textContent = state.waiting ? 'Preparando fotograma…' :
@@ -151,8 +154,9 @@ async function importFile(file) {
     if (!candidate || token !== request) return;
     media = candidate;
     settings = defaults();
-    updateCalibration();
+    $('screen').hidden = false;
     renderer.setMedia(media);
+    updateCalibration();
   } catch (error) {
     if (token !== request) return;
     errorMessage(error.message);
@@ -192,6 +196,7 @@ $('play').addEventListener('click', () => {
 });
 $('seek').addEventListener('input', (event) => playback.seek(event.target.valueAsNumber));
 $('volume').addEventListener('input', (event) => playback.setVolume(event.target.valueAsNumber));
+$('mute').addEventListener('click', () => playback.toggleMute());
 $('back').addEventListener('click', () => playback.skip(-5));
 $('forward').addEventListener('click', () => playback.skip(5));
 $('vr').addEventListener('click', () => vr.enter());

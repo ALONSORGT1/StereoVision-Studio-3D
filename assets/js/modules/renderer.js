@@ -19,21 +19,23 @@ export class StereoRenderer {
   constructor(canvas) {
     this.#canvas = canvas;
     this.#context = canvas.getContext('2d');
-    this.#observer = new ResizeObserver(() => this.#resize());
+    this.#observer = new ResizeObserver(() => {
+      if (this.#resize()) this.#draw();
+    });
     this.#observer.observe(canvas);
     this.#resize();
   }
 
   #resize() {
     const { width, height } = this.#canvas.getBoundingClientRect();
-    if (!width || !height) return;
+    if (!width || !height) return false;
     const ratio = Math.min(devicePixelRatio, 2, 4096 / Math.max(width, height));
     const nextWidth = Math.max(2, Math.round(width * ratio / 2) * 2);
     const nextHeight = Math.max(1, Math.round(height * ratio));
-    if (this.#canvas.width === nextWidth && this.#canvas.height === nextHeight) return;
+    if (this.#canvas.width === nextWidth && this.#canvas.height === nextHeight) return false;
     this.#canvas.width = nextWidth;
     this.#canvas.height = nextHeight;
-    this.#draw();
+    return true;
   }
 
   setMedia(media) {
@@ -44,6 +46,7 @@ export class StereoRenderer {
     this.#frameTime = -1;
     this.#media = media;
     this.#canvas.style.removeProperty('filter');
+    this.#resize();
 
     if (media?.mode === 'video') {
       this.#listeners = new AbortController();

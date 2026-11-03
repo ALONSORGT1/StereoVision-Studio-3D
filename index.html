@@ -45,7 +45,7 @@
       <div class="player" id="player" aria-label="Controles de reproducción" hidden>
         <div class="transport"><button class="ghost" id="back" aria-label="Retroceder 5 segundos">−5 s</button><button class="primary" id="play">Reproducir</button><button class="ghost" id="forward" aria-label="Adelantar 5 segundos">+5 s</button></div>
         <div class="timeline"><input id="seek" type="range" min="0" max="0" step=".01" value="0" aria-label="Posición de reproducción"><span id="time">0:00 / 0:00</span></div>
-        <label class="volume">Volumen <input id="volume" type="range" min="0" max="1" step=".01" value="1"></label>
+        <label class="volume" id="volume-range">Volumen <input id="volume" type="range" min="0" max="1" step=".01" value="1"></label><button id="mute" class="ghost" type="button" hidden title="Usa los botones del teléfono para ajustar el nivel">Silenciar</button>
       </div>
       <footer class="monitor-status"><span id="status" role="status">En espera de módulo</span><span id="mode-detail">LOCAL / 00</span></footer>
       <p id="error" role="alert" hidden></p>

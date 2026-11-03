@@ -22,4 +22,3 @@ export function drawSBS(context, source, width, height, settings, vr, aspectWidt
     context.restore();
   }
 }
-

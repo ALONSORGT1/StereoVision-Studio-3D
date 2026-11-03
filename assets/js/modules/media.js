@@ -49,14 +49,24 @@ function waitUntilReadable(element, url, isVideo, signal) {
     ? 'No se pudo leer el MP4. Prueba con un video MP4 con códec H.264.'
     : 'No se pudo decodificar la imagen. Selecciona otra imagen válida.';
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => finish(new Error(failure)), 20_000);
-    const onReady = () => finish();
+    let timeout = setTimeout(() => finish(new Error(failure)), 20_000);
+    const onReady = () => {
+      if (!isVideo || element.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        finish();
+        return;
+      }
+      // Some mobile browsers defer decoding until the user's explicit play action.
+      clearTimeout(timeout);
+      timeout = setTimeout(() => finish(), 1200);
+    };
+    const onFrame = () => finish();
     const onError = () => finish(new Error(failure));
     const onAbort = () => finish(abortError());
 
     function finish(error) {
       clearTimeout(timeout);
       element.removeEventListener(readyEvent, onReady);
+      element.removeEventListener('loadeddata', onFrame);
       element.removeEventListener('error', onError);
       signal.removeEventListener('abort', onAbort);
       if (error) reject(error);
@@ -64,6 +74,7 @@ function waitUntilReadable(element, url, isVideo, signal) {
     }
 
     element.addEventListener(readyEvent, onReady);
+    if (isVideo) element.addEventListener('loadeddata', onFrame);
     element.addEventListener('error', onError);
     signal.addEventListener('abort', onAbort);
     if (signal.aborted) onAbort();

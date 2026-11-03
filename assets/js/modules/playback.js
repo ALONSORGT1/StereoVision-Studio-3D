@@ -5,6 +5,7 @@ export class VideoPlayback {
   #video = null;
   #listeners = null;
   #waiting = false;
+  #volumeSupported = true;
   #onChange;
   #onError;
 
@@ -14,10 +15,24 @@ export class VideoPlayback {
   }
 
   bind(video) {
+    if (video === this.#video) {
+      this.#update();
+      return;
+    }
     this.#listeners?.abort();
     this.#video = video;
     this.#waiting = false;
+    this.#volumeSupported = true;
     if (video) {
+      // iOS can leave the volume property unchanged when only hardware buttons are supported.
+      const previous = video.volume;
+      try {
+        video.volume = previous === 0.5 ? 1 : 0.5;
+        this.#volumeSupported = video.volume !== previous;
+        video.volume = previous;
+      } catch {
+        this.#volumeSupported = false;
+      }
       this.#listeners = new AbortController();
       const { signal } = this.#listeners;
       for (const type of events) video.addEventListener(type, this.#update, { signal });
@@ -41,6 +56,7 @@ export class VideoPlayback {
       duration: Number.isFinite(video?.duration) ? video.duration : 0,
       volume: video?.volume ?? 1,
       muted: video?.muted ?? false,
+      volumeSupported: this.#volumeSupported,
     });
   };
 
@@ -71,12 +87,18 @@ export class VideoPlayback {
   }
 
   setVolume(value) {
-    if (!this.#video || !Number.isFinite(value)) return;
+    if (!this.#video || !this.#volumeSupported || !Number.isFinite(value)) return;
     const video = this.#video;
     const volume = Math.min(1, Math.max(0, value));
     video.volume = volume;
     // Hardware-managed browsers can still support a real mute action.
     video.muted = volume === 0;
+    this.#update();
+  }
+
+  toggleMute() {
+    if (!this.#video) return;
+    this.#video.muted = !this.#video.muted;
     this.#update();
   }
 }
