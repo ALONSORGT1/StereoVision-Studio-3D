@@ -65,3 +65,10 @@ Las comprobaciones de tests/calibration-checks.mjs se ejecutan desde la suite de
 - Regresión de anaglifo, video y las seis demos mediante P-01 a P-08.
 
 El perfil móvil usa emulación de Chrome. La validación con teléfono y gafas físicos sigue pendiente.
+
+La versión publicada también completó P-01 a P-09 y la comprobación avanzada en Chrome 139 por HTTPS. Se verificaron las secciones mediante Enter y Espacio y el cambio del slider con flecha de teclado. Una prueba táctil adicional sobre la demo Arrecife azul confirmó que una pulsación del slider cambia el raster y el campo numérico. La sustitución de imagen con un campo todavía enfocado fuerza la actualización a los valores iniciales.
+
+Las descargas iniciales de los videos de demostración superaron el límite de 30 segundos de la primera ejecución remota. La comprobación directa respondió HTTP 200 para los seis recursos y el Studio los abrió correctamente. La suite usa ahora hasta 120 segundos para esperar la descarga de una demo y conserva diagnósticos de estado en caso de fallo. La ejecución posterior terminó correctamente.
+
+- [Inspector avanzado en escritorio](evidence/calibracion-avanzada.png)
+- [Inspector avanzado en móvil emulado](evidence/calibracion-movil.png)

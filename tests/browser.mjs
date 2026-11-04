@@ -4,7 +4,7 @@ import { readFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { extname, join, resolve, sep } from 'node:path';
 import { chromium, devices } from 'playwright-core';
-import { checkImageCalibration, loadHalfSBS } from './calibration-checks.mjs';
+import { checkImageCalibration, checkTouchSlider, loadHalfSBS } from './calibration-checks.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const prefix = '/StereoVision-Studio-3D/';
@@ -274,6 +274,7 @@ try {
   await load(phone, 'image', 'orbital-sbs.png');
   await screenshot(phone, '06-movil-imagen-sbs', true);
   await loadHalfSBS(phone);
+  await checkTouchSlider(phone);
   await range(phone, 'horizontal', 8);
   await range(phone, 'vertical', 4);
   await range(phone, 'scale', 135);
@@ -334,7 +335,7 @@ try {
       const releases = await page.evaluate(() => window.testReleased.length);
       await demo.click();
       await page.waitForFunction((name) => document.getElementById('filename').textContent === name,
-        scene + (mode === 'video' ? '.mp4' : '.jpg'));
+        scene + (mode === 'video' ? '.mp4' : '.jpg'), { timeout: 120_000 });
       assert(await page.locator('#screen').isVisible());
       if (previousDemo) {
         assert((await page.evaluate(() => window.testReleased.length)) > releases);
@@ -357,6 +358,17 @@ try {
   console.log(process.env.STUDIO_URL
     ? 'P-09 PASS: URL configurada sin errores de red o consola en escritorio y móvil emulado'
     : 'P-09 PARCIAL: rutas correctas con el subdirectorio de Pages en HTTP local; publicación HTTPS pendiente');
+} catch (error) {
+  for (const context of browser?.contexts() ?? []) {
+    for (const page of context.pages()) {
+      console.error('Estado al fallar', await page.evaluate(() => ({
+        filename: document.getElementById('filename')?.textContent,
+        status: document.getElementById('status')?.textContent,
+        error: document.getElementById('error')?.textContent,
+      })));
+    }
+  }
+  throw error;
 } finally {
   await browser?.close();
   server.close();

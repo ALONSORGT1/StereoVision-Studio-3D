@@ -26,6 +26,19 @@ async function set(page, key, value, numeric = false) {
   assert.equal(await page.locator('#' + key + '-number').inputValue(), String(value));
 }
 
+export async function checkTouchSlider(page) {
+  await settled(page);
+  const before = await page.locator('#screen').evaluate(canvas => canvas.toDataURL());
+  const slider = page.locator('#scale');
+  const initial = await slider.inputValue();
+  const bounds = await slider.boundingBox();
+  await slider.tap({ position: { x: bounds.width * 0.7, y: bounds.height / 2 } });
+  assert.notEqual(await slider.inputValue(), initial);
+  assert.equal(await slider.inputValue(), await page.locator('#scale-number').inputValue());
+  const after = await page.locator('#screen').evaluate(canvas => canvas.toDataURL());
+  assert.notEqual(after, before);
+}
+
 export async function loadHalfSBS(page) {
   const compressed = await page.evaluate(() => {
     const source = window.testDraws.at(-1).source;
@@ -80,10 +93,15 @@ export async function checkImageCalibration(page, evidence) {
     assert.equal(await page.locator('#' + key).inputValue(), String(initial));
   }
   await set(page, 'moveX', 7.5, true);
-  await page.getByText('Alineación', { exact: true }).click();
+  const alignment = page.getByText('Alineación', { exact: true });
+  await alignment.focus();
+  await alignment.press('Enter');
   assert(!(await page.locator('#moveX').isVisible()));
-  await page.getByText('Alineación', { exact: true }).click();
+  await alignment.press('Space');
   assert.equal(await page.locator('#moveX-number').inputValue(), '7.5');
+  await page.locator('#moveX').focus();
+  await page.locator('#moveX').press('ArrowRight');
+  assert.equal(await page.locator('#moveX-number').inputValue(), '7.6');
 
   await page.locator('#moveX-number').fill('999');
   await page.locator('#moveX-number').press('Tab');
