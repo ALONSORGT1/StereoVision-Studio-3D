@@ -1,3 +1,5 @@
+import { videoErrorMessage } from './media.js';
+
 const events = ['play', 'playing', 'pause', 'ended', 'seeking', 'seeked', 'timeupdate',
   'durationchange', 'volumechange', 'waiting', 'canplay', 'error'];
 
@@ -46,7 +48,7 @@ export class VideoPlayback {
     if (type === 'waiting') this.#waiting = true;
     if (['playing', 'pause', 'ended', 'canplay', 'error'].includes(type)) this.#waiting = false;
     if (video?.error && (type === 'error' || !event)) {
-      this.#onError('No se pudo decodificar el video. Prueba con otro MP4, preferentemente H.264.');
+      this.#onError(videoErrorMessage(video));
     }
     this.#onChange({
       paused: video?.paused ?? true,
@@ -54,6 +56,7 @@ export class VideoPlayback {
       waiting: this.#waiting,
       currentTime: video?.currentTime ?? 0,
       duration: Number.isFinite(video?.duration) ? video.duration : 0,
+      seekEnd: this.#seekEnd(),
       volume: video?.volume ?? 1,
       muted: video?.muted ?? false,
       volumeSupported: this.#volumeSupported,
@@ -71,15 +74,27 @@ export class VideoPlayback {
       await video.play();
     } catch (error) {
       if (video !== this.#video || error.name === 'AbortError') return;
-      this.#onError('No se pudo iniciar el video. Pulsa reproducir otra vez o selecciona otro MP4.');
+      this.#onError('No se pudo iniciar el video. Pulsa reproducir otra vez o selecciona otro video compatible.');
     }
   }
 
   seek(seconds) {
     const video = this.#video;
-    if (!video || !Number.isFinite(seconds) || !Number.isFinite(video.duration)) return;
-    video.currentTime = Math.min(video.duration, Math.max(0, seconds));
+    const end = this.#seekEnd();
+    if (!video || !Number.isFinite(seconds) || !end) return;
+    try {
+      video.currentTime = Math.min(end, Math.max(0, seconds));
+    } catch {
+      this.#onError('No se pudo cambiar la posición del video. Espera a que termine de leer sus datos e inténtalo de nuevo.');
+    }
     this.#update();
+  }
+
+  #seekEnd() {
+    const video = this.#video;
+    if (!video) return 0;
+    if (Number.isFinite(video.duration)) return Math.max(0, video.duration);
+    return video.seekable.length ? video.seekable.end(video.seekable.length - 1) : 0;
   }
 
   skip(seconds) {

@@ -7,9 +7,9 @@ import { CalibrationPanel } from './modules/calibration-panel.js';
 
 const $ = (id) => document.getElementById(id);
 const modes = {
-  anaglyph: ['Anaglifo', 'JPG, JPEG, PNG o WebP', '01'],
-  image: ['Imagen SBS', 'JPG, JPEG, PNG o WebP con dos vistas lado a lado', '02'],
-  video: ['Video SBS', 'MP4 con dos vistas lado a lado', '03'],
+  anaglyph: ['Anaglifo', 'JPG, PNG, WebP y otras imágenes compatibles con el navegador', '01'],
+  image: ['Imagen SBS', 'Imagen compatible con dos vistas lado a lado', '02'],
+  video: ['Video SBS', 'MP4 y otros videos compatibles con dos vistas lado a lado', '03'],
 };
 const loader = new MediaLoader();
 const renderer = new StereoRenderer($('screen'));
@@ -77,13 +77,15 @@ const playback = new VideoPlayback({
   onError: errorMessage,
   onChange(state) {
     $('play').textContent = state.paused ? 'Reproducir' : 'Pausar';
-    $('seek').max = state.duration;
+    $('seek').max = state.seekEnd;
+    $('seek').disabled = !state.seekEnd;
+    $('back').disabled = $('forward').disabled = !state.seekEnd;
     $('seek').value = state.currentTime;
     $('volume').value = state.muted ? 0 : state.volume;
     $('volume-range').hidden = state.volumeSupported === false;
     $('mute').hidden = state.volumeSupported !== false;
     $('mute').textContent = state.muted ? 'Activar sonido' : 'Silenciar';
-    $('time').textContent = clock(state.currentTime) + ' / ' + clock(state.duration);
+    $('time').textContent = clock(state.currentTime) + ' / ' + (state.duration ? clock(state.duration) : '—');
     if (media?.mode === 'video' && !loading) {
       const status = state.waiting ? 'Preparando fotograma…' :
         state.ended ? 'Finalizado' : state.paused ? 'En pausa' : 'En reproducción';

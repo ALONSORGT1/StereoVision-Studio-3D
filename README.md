@@ -23,10 +23,20 @@ Los recursos son originales del proyecto. Las seis escenas y sus miniaturas se r
 El generador y Three.js se usan solo en desarrollo. Para reproducir la biblioteca, ejecuta `npm --prefix tests ci` y `node tests/generate-demos.mjs` con Chrome, Python e imageio-ffmpeg instalados. Ejecuta `python tests/verify-demos.py` con NumPy e imageio-ffmpeg para comprobar formatos, duración y diferencias de píxeles, y generar hojas de contacto en `test-results/`.
 
 1. Elige **Anaglifo**, **Imagen SBS** o **Video SBS**. Selecciona un archivo o arrástralo al monitor.
-2. Usa lentes rojo-cian con un anaglifo existente. Ajusta escala, brillo y contraste. Se admiten JPG, JPEG, PNG y WebP.
+2. Usa lentes rojo-cian con un anaglifo existente. Ajusta escala, brillo y contraste. Se admiten JPG/JPEG/JFIF, PNG, WebP y otros formatos que el navegador pueda decodificar.
 3. En SBS cada mitad contiene una perspectiva. En imágenes, calibra el par en el inspector y activa **Intercambiar L/R** si el orden del medio es inverso.
-4. En video selecciona un MP4 compatible y pulsa **Reproducir**. Usa la línea de tiempo, los saltos de cinco segundos y el volumen. En navegadores con volumen controlado por el sistema, usa los botones físicos para el nivel y el extremo cero del control para silenciar.
+4. En video selecciona un MP4 u otro video compatible con el navegador y pulsa **Reproducir**. Usa la línea de tiempo, los saltos de cinco segundos y el volumen. En navegadores con volumen controlado por el sistema, usa los botones físicos para el nivel y el extremo cero del control para silenciar.
 5. Con contenido SBS, pulsa **Visor VR** y coloca el teléfono horizontalmente. Para regresar, toca **Salir de VR**. Puedes usar Esc con teclado. El visor conserva el contenido y la calibración y funciona en la página si el navegador deniega pantalla completa.
+
+## Compatibilidad de importación
+
+La decodificación nativa del navegador determina si se puede abrir el archivo. El nombre, la extensión, el MIME informado por el sistema y una cabecera parcial aportan pistas para la lectura. La importación acepta contenido decodificable aunque esos datos estén incompletos o no coincidan. Las pruebas incluyen JPEG, PNG de 16 bits, WebP, GIF, BMP y AVIF en anaglifo e imagen SBS, con archivos de ancho impar y variaciones de nombre y MIME.
+
+En SBS se calculan ambas mitades mediante coordenadas fraccionarias cuando el ancho es impar. El archivo conserva sus píxeles y proporción. Para MP4 se usa el demultiplexor del navegador, que admite las estructuras de contenedor que pueda interpretar. La compatibilidad del códec sigue dependiendo del navegador y del dispositivo. H.264 con audio AAC es una opción habitual para MP4. HEIC/HEIF, TIFF y otros formatos pueden necesitar conversión a JPG, PNG o WebP cuando el navegador no los admita.
+
+Si falla la lectura de la URL inicial, el Studio realiza un único reintento desde una copia de los bytes en memoria. Esto permite separar la decodificación de la referencia al archivo seleccionado. Al sustituir el contenido se liberan ambas URL cuando corresponde. Los errores distinguen archivo vacío, lectura desde almacenamiento, espera agotada y formato o códec incompatible. Un archivo inválido mantiene disponible el medio anterior.
+
+El tiempo inicial de lectura es de hasta 60 segundos. Conviene seleccionar archivos que estén descargados en el dispositivo. Un video con dimensiones válidas puede abrirse mientras el navegador aún determina su duración. En ese caso se muestra un guion para la duración y la búsqueda usa los intervalos disponibles del medio.
 
 ## Calibración de anaglifo
 

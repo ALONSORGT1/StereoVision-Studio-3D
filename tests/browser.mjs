@@ -6,6 +6,7 @@ import { extname, join, resolve, sep } from 'node:path';
 import { chromium, devices } from 'playwright-core';
 import { checkImageCalibration, checkTouchSlider, loadHalfSBS } from './calibration-checks.mjs';
 import { checkAnaglyphCalibration, checkAnaglyphTouch } from './anaglyph-checks.mjs';
+import { checkImports } from './import-checks.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const prefix = '/StereoVision-Studio-3D/';
@@ -276,6 +277,7 @@ try {
   await load(page, 'image', 'orbital-sbs.png');
   assert(!(await page.locator('#error').isVisible()));
   console.log('P-07 PASS: extensión inválida y PNG corrupto mantienen la vista activa y permiten recuperación');
+  await checkImports(page, join(repo, 'tests', 'fixtures'));
 
   const mobile = await browser.newContext({ ...devices['iPhone 13'], defaultBrowserType: 'chromium', reducedMotion: 'reduce' });
   await auditContext(mobile, problems, new URL(url).origin);

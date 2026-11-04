@@ -94,3 +94,13 @@ La prueba adicional de pérdida del contexto WebGL confirmó que el visor contin
 
 - [Inspector e inspección roja en escritorio](evidence/anaglifo-inspeccion.png)
 - [Inspector anaglifo en móvil emulado](evidence/anaglifo-movil.png)
+
+## Revisión de las restricciones de carga
+
+Se retiró el rechazo por extensión, la validación parcial obligatoria de cabeceras MP4 y la exigencia de ancho par en SBS. Las firmas conocidas se usan para normalizar el MIME, mientras la decodificación efectiva decide si el medio puede abrirse. El cargador reintenta una vez con una copia de bytes cuando falla la lectura inicial y conserva el archivo anterior ante un error definitivo.
+
+Las pruebas de tests/import-checks.mjs cargan archivos reales mediante el mismo input del Studio. La matriz local en Chrome 139 comprobó JPEG, PNG RGB de 16 bits, WebP, GIF, BMP y AVIF de 129 × 97 en ambos módulos de imagen. También comprobó nombres con mayúsculas y espacios, JFIF con MIME genérico, JPEG sin extensión y WebP con un nombre PNG.
+
+En video se comprobaron el MP4 H.264 de referencia, una variante válida con un átomo free de tamaño extendido antes de ftyp y un archivo M4V con MIME genérico. Las pruebas forzaron un fallo inicial de una URL respaldada por File en los tres módulos y comprobaron la recuperación desde la copia de bytes. Los archivos incompletos siguen produciendo errores recuperables.
+
+Las muestras adicionales se regeneran mediante python tests/generate-import-fixtures.py con imageio-ffmpeg instalado. La suite completa sigue verificando calibración, restablecimiento, sustitución, reproducción y VR. La compatibilidad de archivos particulares depende también de los códecs instalados y del navegador. Los archivos concretos que motivaron el reporte no se proporcionaron para esta revisión.

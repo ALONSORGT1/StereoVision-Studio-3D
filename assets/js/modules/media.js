@@ -1,37 +1,52 @@
-const formats = {
-  jpg: { mime: 'image/jpeg', matches: bytes => bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff },
-  png: { mime: 'image/png', matches: bytes => [137, 80, 78, 71, 13, 10, 26, 10].every((byte, i) => bytes[i] === byte) },
-  webp: { mime: 'image/webp', matches: bytes => tag(bytes, 0) === 'RIFF' && tag(bytes, 8) === 'WEBP' },
-  mp4: { mime: 'video/mp4', matches: isMP4 },
+const mediaTypes = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', jfif: 'image/jpeg',
+  png: 'image/png', webp: 'image/webp', gif: 'image/gif', bmp: 'image/bmp',
+  avif: 'image/avif', heic: 'image/heic', heif: 'image/heif',
+  tif: 'image/tiff', tiff: 'image/tiff', svg: 'image/svg+xml',
+  mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/quicktime',
+  webm: 'video/webm', ogv: 'video/ogg',
 };
-formats.jpeg = formats.jpg;
 
-function tag(bytes, offset) {
-  return String.fromCharCode(...bytes.subarray(offset, offset + 4));
+function tag(bytes, offset, length = 4) {
+  return String.fromCharCode(...bytes.subarray(offset, offset + length));
 }
 
-function isMP4(bytes) {
-  const view = new DataView(bytes.buffer);
-  for (let offset = 0; offset + 8 <= bytes.length;) {
-    const length = view.getUint32(offset);
-    if (length < 8) return false;
-    if (tag(bytes, offset + 4) === 'ftyp') {
-      // QuickTime files also use ISO boxes but are not MP4 files.
-      return length >= 16 && offset + 16 <= bytes.length && tag(bytes, offset + 8) !== 'qt  ';
-    }
-    offset += length;
-  }
-  return false;
+// Signatures are MIME hints, never an admission test. The browser decodes the file.
+async function contentType(file) {
+  const bytes = new Uint8Array(await file.slice(0, 64).arrayBuffer());
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return 'image/jpeg';
+  if (tag(bytes, 0, 8) === '\x89PNG\r\n\x1a\n') return 'image/png';
+  if (tag(bytes, 0) === 'RIFF' && tag(bytes, 8) === 'WEBP') return 'image/webp';
+  if (tag(bytes, 0, 3) === 'GIF') return 'image/gif';
+  if (tag(bytes, 0, 2) === 'BM') return 'image/bmp';
+  const extension = file.name.trim().split('.').pop().toLowerCase();
+  if (Object.hasOwn(mediaTypes, extension)) return mediaTypes[extension];
+  return file.type || 'application/octet-stream';
 }
 
 export function acceptFor(mode) {
-  if (mode === 'video') return '.mp4,video/mp4';
-  if (mode === 'anaglyph' || mode === 'image') return '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp';
+  if (mode === 'video') return 'video/*,.mp4,.m4v,.mov,.webm,.ogv';
+  if (mode === 'anaglyph' || mode === 'image') {
+    return 'image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.avif,.heic,.heif,.tif,.tiff';
+  }
   return '';
 }
 
 function abortError() {
   return new DOMException('Importación cancelada', 'AbortError');
+}
+
+export function videoErrorMessage(video) {
+  switch (video.error?.code) {
+    case 1:
+      return 'La lectura del video se interrumpió. Vuelve a seleccionarlo.';
+    case 2:
+      return 'No se pudo leer el video desde el almacenamiento. Comprueba que esté descargado en el dispositivo y vuelve a seleccionarlo.';
+    case 3:
+      return 'El navegador no pudo decodificar el video. Puede estar incompleto o usar un códec incompatible. Prueba una copia completa o un MP4 con video H.264 y audio AAC.';
+    default:
+      return 'El navegador no admite el formato o códec de este video. Un archivo MP4 puede contener distintos códecs. Prueba MP4 con video H.264 y audio AAC, o un formato que este navegador pueda reproducir.';
+  }
 }
 
 function release(asset) {
@@ -45,25 +60,30 @@ function release(asset) {
 
 function waitUntilReadable(element, url, isVideo, signal) {
   const readyEvent = isVideo ? 'loadedmetadata' : 'load';
-  const failure = isVideo
-    ? 'No se pudo leer el MP4. Prueba con un video MP4 con códec H.264.'
-    : 'No se pudo decodificar la imagen. Selecciona otra imagen válida.';
   return new Promise((resolve, reject) => {
-    let timeout = setTimeout(() => finish(new Error(failure)), 20_000);
+    let finished = false;
+    let timeout = setTimeout(() => {
+      const error = new Error('La lectura del archivo está tardando demasiado. Comprueba que esté descargado por completo en el dispositivo y vuelve a seleccionarlo.');
+      error.name = 'TimeoutError';
+      finish(error);
+    }, 60_000);
     const onReady = () => {
       if (!isVideo || element.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
         finish();
         return;
       }
-      // Some mobile browsers defer decoding until the user's explicit play action.
+      // Mobile browsers may defer the first decoded frame until explicit play.
       clearTimeout(timeout);
       timeout = setTimeout(() => finish(), 1200);
     };
     const onFrame = () => finish();
-    const onError = () => finish(new Error(failure));
+    const onError = () => finish(new Error(isVideo ? videoErrorMessage(element)
+      : 'El navegador no pudo decodificar esta imagen. Comprueba que el archivo esté completo. Puedes convertir una copia a JPG, PNG o WebP si su formato no es compatible.'));
     const onAbort = () => finish(abortError());
 
     function finish(error) {
+      if (finished) return;
+      finished = true;
       clearTimeout(timeout);
       element.removeEventListener(readyEvent, onReady);
       element.removeEventListener('loadeddata', onFrame);
@@ -78,7 +98,10 @@ function waitUntilReadable(element, url, isVideo, signal) {
     element.addEventListener('error', onError);
     signal.addEventListener('abort', onAbort);
     if (signal.aborted) onAbort();
-    else element.src = url;
+    else {
+      element.src = url;
+      if (isVideo) element.load();
+    }
   });
 }
 
@@ -87,49 +110,55 @@ export class MediaLoader {
   #pending = null;
 
   async load(file, mode) {
-    this.#pending?.abort();
+    this.cancelPending();
     const controller = new AbortController();
     this.#pending = controller;
     const { signal } = controller;
     let asset;
     try {
       if (!acceptFor(mode)) throw new Error('Elige un módulo antes de importar un archivo.');
-      const extension = file.name.split('.').pop().toLowerCase();
-      const format = Object.hasOwn(formats, extension) ? formats[extension] : null;
-      const isVideo = mode === 'video';
-      if (!format || isVideo !== (extension === 'mp4')) {
-        throw new Error(isVideo ? 'Selecciona un archivo MP4.' : 'Selecciona una imagen JPG, PNG o WebP.');
+      if (!file.size) throw new Error('El archivo está vacío. Selecciona una copia completa.');
+      let type;
+      try {
+        type = await contentType(file);
+      } catch {
+        throw new Error('No se pudo leer el archivo. Comprueba que esté descargado en el dispositivo y vuelve a seleccionarlo.');
       }
-      const header = new Uint8Array(await file.slice(0, 65_536).arrayBuffer());
       if (signal.aborted) return null;
-      if (!format.matches(header)) {
-        throw new Error('El contenido del archivo no coincide con su formato. Selecciona otro archivo.');
-      }
-
+      const isVideo = mode === 'video';
       const element = isVideo ? document.createElement('video') : new Image();
       if (isVideo) {
         element.preload = 'auto';
         element.playsInline = true;
         element.disablePictureInPicture = true;
       }
-      // Supply a reliable media type even when the operating system omitted it.
-      const url = URL.createObjectURL(file.type === format.mime ? file : file.slice(0, file.size, format.mime));
+      const url = URL.createObjectURL(file.type === type ? file : file.slice(0, file.size, type));
       asset = { element, url, mode, file };
-      // Mobile data-saving browsers may defer the first decoded frame until play().
-      await waitUntilReadable(element, url, isVideo, signal);
+      try {
+        await waitUntilReadable(element, url, isVideo, signal);
+      } catch (error) {
+        if (signal.aborted || error.name === 'TimeoutError') throw error;
+        // A file-backed URL may become unreadable while its picker or cloud source
+        // changes. Retry once from an owned byte snapshot with the normalized MIME.
+        let bytes;
+        try {
+          bytes = await file.arrayBuffer();
+        } catch {
+          throw new Error('No se pudo leer el archivo completo. Descárgalo al dispositivo y vuelve a seleccionarlo.');
+        }
+        if (signal.aborted) return null;
+        release(asset);
+        asset.url = URL.createObjectURL(new Blob([bytes], { type }));
+        await waitUntilReadable(element, asset.url, isVideo, signal);
+      }
       if (signal.aborted) return null;
 
       asset.width = isVideo ? element.videoWidth : element.naturalWidth;
       asset.height = isVideo ? element.videoHeight : element.naturalHeight;
-      if (!asset.width || !asset.height || (isVideo && (!Number.isFinite(element.duration) || element.duration <= 0))) {
-        throw new Error('No se encontraron dimensiones o duración válidas. Selecciona otro archivo.');
+      if (!asset.width || !asset.height) {
+        throw new Error('El navegador no encontró imágenes o fotogramas válidos en este archivo.');
       }
-      if (mode !== 'anaglyph' && asset.width % 2 !== 0) {
-        throw new Error('El archivo SBS debe tener un ancho par para obtener dos perspectivas del mismo tamaño.');
-      }
-      if (isVideo && element.error) {
-        throw new Error('El navegador no pudo decodificar el MP4. Prueba con un video MP4 con códec H.264.');
-      }
+      if (isVideo && element.error) throw new Error(videoErrorMessage(element));
 
       release(this.#active);
       this.#active = asset;
