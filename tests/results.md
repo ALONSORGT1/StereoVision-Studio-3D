@@ -47,3 +47,21 @@ En Google Chrome 139.0.7258.155 para Windows, la ejecución HTTP local completó
 
 1. Al mostrar por primera vez el lienzo, la comparación de píxeles detectó dimensiones iniciales distintas a las del monitor. El renderizador actualiza el tamaño al cargar el medio y la prueba confirma el cuadro estable antes de comparar.
 2. Un fallo en la generación inicial dejó la muestra de video incompleta y el navegador rechazó el MP4. Se regeneró el archivo de seis segundos con H.264 y AAC y se comprobó su reproducción, calibración y búsqueda en el navegador.
+
+## Calibración avanzada de Imagen SBS
+
+Las comprobaciones de tests/calibration-checks.mjs se ejecutan desde la suite de navegador. Se verificaron en HTTP local los siguientes casos.
+
+- Paralaje y desnivel de −4,2 y +4,2 %, con destinos en sentidos opuestos por ojo.
+- Mover X y Mover Y de −4,2 y +4,2 %, con idéntico desplazamiento para ambos ojos.
+- Escala de 145 %, con anchura y altura multiplicadas por 1,45 y recortes de origen intactos.
+- Creación de una imagen Half-SBS comprimida a partir del par Full-SBS y recuperación de proporción 16/9 por ojo. La selección de formato conserva las regiones de origen.
+- Intercambio de regiones L/R y restablecimiento individual de los cinco parámetros numéricos, el formato y el intercambio.
+- Sincronización slider/campo, límites numéricos, recuperación de entradas vacías y persistencia al plegar.
+- Conservación de todos los campos en VR y comprobación de los desplazamientos aplicados al raster inmersivo.
+- Restablecimiento completo, carga de otra demo y liberación de recursos en sustituciones.
+- Entrada táctil en móvil emulado, campos de desplazamiento, selector Half-SBS y retorno desde VR.
+- Distribución sin desplazamiento horizontal a 320, 768, 1024 y 1440 px.
+- Regresión de anaglifo, video y las seis demos mediante P-01 a P-08.
+
+El perfil móvil usa emulación de Chrome. La validación con teléfono y gafas físicos sigue pendiente.

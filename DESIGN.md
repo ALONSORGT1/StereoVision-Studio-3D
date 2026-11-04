@@ -29,3 +29,23 @@ La tipografía de sistema mantiene una jerarquía compacta y prescinde de solici
 - **Impeccable**. El modo Operate orientó la composición de banco óptico, la eliminación de rótulos y numeración ornamentales, y el énfasis en el monitor. Se preservaron las decisiones visuales ya presentes en el código.
 - **UI/UX Pro Max**. La consulta de sistema de diseño sugirió una retícula técnica y contraste de superficies. La interfaz limita el recurso óptico al monitor, usa anillos de foco visibles y ajusta la composición y los tamaños táctiles por dispositivo.
 - **Emil Design Engineering y Review Animations**. La presión por puntero reduce el botón a 0.97 en 90 ms y la liberación recupera el tamaño en 160 ms. La revisión excluyó la transformación al activar por teclado y con movimiento reducido. Los estados hover se limitan a dispositivos con puntero fino. El lienzo, la línea de tiempo y el cambio de modo VR responden sin transiciones.
+
+## Inspector avanzado de Imagen SBS
+
+El panel conserva los colores, las divisiones finas y los números monoespaciados del Studio. Las tres secciones usan el elemento nativo details, de modo que plegarlas funciona con teclado y mantiene los controles y sus valores en el documento.
+
+UI/UX Pro Max se consultó con «properties inspector numeric input progressive disclosure slider». Se aplicaron sus recomendaciones sobre etiquetas visibles, tipos de entrada adecuados y agrupación progresiva. Cada parámetro tiene slider, campo number con porcentaje y acción individual de restablecimiento. El formulario emite cambios al estado del Studio y el renderizador responde en el mismo evento.
+
+La revisión de Impeccable preservó el inspector existente y evitó contenedores anidados. Se ajustaron el ancho lateral, los saltos a dos columnas en tableta y el flujo vertical en móvil. Los bordes de campos y selector usan el token control-border con contraste mínimo de 3,16 sobre las superficies adyacentes. El foco mantiene el contorno de acento.
+
+La revisión de Emil Design Engineering y Review Animations se aplicó a los ajustes frecuentes y al plegado.
+
+| Before | After | Why |
+|---|---|---|
+| Valor de solo lectura junto al slider | Campo numérico con borradores de edición y normalización al confirmar | Permite valores precisos y escribir signos o decimales sin interrumpir la entrada |
+| Herramientas SBS en una sola lista | Tres secciones plegables nativas | Reduce la carga visual sin descartar valores |
+| Acción global como único restablecimiento | Acción por parámetro con SVG y nombre accesible | Recupera una referencia sin perder el resto de la calibración |
+| Controles sin tamaño táctil específico para entradas numéricas | Campos de 16 px y objetivos de 44 px con puntero grueso | Evita el zoom automático de entrada y facilita la pulsación |
+| Sin indicador de expansión | Flecha con transición de transform de 120 ms solo por puntero fino y sin movimiento reducido | Expresa el estado sin animar el alto del panel ni retrasar el visor |
+
+El lienzo y los valores se actualizan directamente. Las activaciones por teclado y el movimiento reducido mantienen el plegado inmediato. La inspección visual incluyó el panel abierto en escritorio y móvil emulado, y se comprobó que no aparece desbordamiento horizontal en 320, 768, 1024 y 1440 px.

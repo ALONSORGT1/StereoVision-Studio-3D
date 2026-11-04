@@ -3,6 +3,7 @@ import { StereoRenderer } from './modules/renderer.js';
 import { calibrationControls, defaults } from './modules/calibration.js';
 import { VideoPlayback } from './modules/playback.js';
 import { VRPresentation } from './modules/vr.js';
+import { ImageCalibrationPanel } from './modules/calibration-panel.js';
 
 const $ = (id) => document.getElementById(id);
 const modes = {
@@ -99,7 +100,17 @@ const vr = new VRPresentation($('studio'), {
   },
 });
 
+const imagePanel = new ImageCalibrationPanel($('controls'), (patch) => {
+  settings = { ...settings, ...patch };
+  updateCalibration();
+});
+
 function updateCalibration() {
+  if (mode === 'image') {
+    imagePanel.update(settings);
+    renderer.setCalibration(settings);
+    return;
+  }
   for (const { key, unit } of calibrationControls(mode)) {
     $(key).value = settings[key];
     $(key + '-value').value = settings[key] + ' ' + unit;
@@ -110,6 +121,12 @@ function updateCalibration() {
 
 function makeControls() {
   const controls = $('controls');
+  $('reset').textContent = mode === 'image' ? 'Restablecer calibración' : 'Restablecer ajustes';
+  if (mode === 'image') {
+    imagePanel.mount();
+    return;
+  }
+  controls.classList.remove('advanced-calibration');
   controls.replaceChildren();
   for (const { key, label, min, max, step } of calibrationControls(mode)) {
     const row = document.createElement('div');

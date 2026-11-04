@@ -24,9 +24,27 @@ El generador y Three.js se usan solo en desarrollo. Para reproducir la bibliotec
 
 1. Elige **Anaglifo**, **Imagen SBS** o **Video SBS**. Selecciona un archivo o arrástralo al monitor.
 2. Usa lentes rojo-cian con un anaglifo existente. Ajusta escala, brillo y contraste. Se admiten JPG, JPEG, PNG y WebP.
-3. En SBS cada mitad contiene una perspectiva. Ajusta escala y alineación en el inspector y activa **Intercambiar ojos** si el orden del medio es inverso. El desplazamiento se reparte entre ambas vistas y se expresa como porcentaje de la región de cada ojo.
+3. En SBS cada mitad contiene una perspectiva. En imágenes, calibra el par en el inspector y activa **Intercambiar L/R** si el orden del medio es inverso.
 4. En video selecciona un MP4 compatible y pulsa **Reproducir**. Usa la línea de tiempo, los saltos de cinco segundos y el volumen. En navegadores con volumen controlado por el sistema, usa los botones físicos para el nivel y el extremo cero del control para silenciar.
 5. Con contenido SBS, pulsa **Visor VR** y coloca el teléfono horizontalmente. Para regresar, toca **Salir de VR**. Puedes usar Esc con teclado. El visor conserva el contenido y la calibración y funciona en la página si el navegador deniega pantalla completa.
+
+## Calibración de imágenes SBS
+
+El inspector organiza los ajustes en **Paralaje y tamaño**, **Alineación** y **Formato SBS**. Puedes plegar cada sección conservando los valores y editar los parámetros mediante el slider o el campo numérico. El icono junto a cada ajuste lo restablece individualmente. **Restablecer calibración** recupera todos los valores iniciales.
+
+| Ajuste | Efecto y rango |
+|---|---|
+| Paralaje | De −8 a +8 % del ancho por ojo. Reparte la separación horizontal entre las dos vistas en sentidos opuestos. |
+| Escala | De 50 a 200 %. A 100 % ajusta cada vista a su región, conservando la proporción correspondiente al formato. |
+| Mover X | De −25 a +25 % del ancho por ojo. Mueve ambas vistas juntas hacia la izquierda o derecha. |
+| Mover Y | De −25 a +25 % del alto por ojo. Mueve ambas vistas juntas hacia arriba o abajo. |
+| Desnivel | De −5 a +5 % del alto por ojo. Reparte la corrección vertical entre las vistas en sentidos opuestos. |
+| Tipo de SBS | Full conserva la proporción de cada mitad. Half recupera el ancho de una perspectiva comprimida horizontalmente a la mitad. El recorte de origen sigue usando exactamente la mitad del archivo. |
+| Intercambiar L/R | Invierte qué mitad recibe cada ojo. Comienza desactivado. |
+
+Por ejemplo, un Full-SBS de 3840 × 1080 contiene vistas de 1920 × 1080. Un Half-SBS de 1920 × 1080 almacena vistas de 960 × 1080 que se presentan con proporción 1920 × 1080 al seleccionar Half. Full es el valor inicial. Todos los desplazamientos comienzan en cero y la escala en 100 %. Al cargar otra imagen se restablecen esos valores. Las secciones plegadas mantienen su estado al sustituirla.
+
+Los controles modifican el encuadre y mantienen cada ojo dentro de su región. Al ampliar por encima del ajuste inicial o desplazar el contenido, las partes que exceden esa región quedan fuera del encuadre. El archivo original y su resolución se conservan. VR usa los mismos parámetros y los devuelve al inspector al salir.
 
 ## Arquitectura
 
@@ -37,12 +55,13 @@ El generador y Three.js se usan solo en desarrollo. Para reproducir la bibliotec
 | `anaglyph.js` | Ajuste proporcional de la vista anaglifo y filtros de brillo y contraste |
 | `renderer.js` y `sbs.js` | Canvas adaptable, recortes por ojo y composición desde un único fotograma de video |
 | `calibration.js` | Valores iniciales, rangos y escala proporcional |
+| `calibration-panel.js` | Inspector de imágenes SBS, secciones, entradas numéricas y restablecimiento individual |
 | `playback.js` | Fuente temporal nativa, transporte, volumen y estados de reproducción |
 | `vr.js` | Presentación binocular, pantalla completa opcional y retorno al Studio |
 
 ## Alcance
 
-El editor trabaja con material que ya contiene información estereoscópica. La calibración modifica el encuadre en pantalla. La disparidad del contenido, el desplazamiento digital y la distancia interpupilar física son parámetros distintos. SBS admite dos mitades de ancho igual y conserva su proporción codificada por ojo. La compatibilidad de MP4 depende de los códecs del navegador. El visor Cardboard presenta dos perspectivas fijas sin seguimiento de movimiento. El Studio no requiere conexión para procesar el medio una vez cargados sus recursos.
+El editor trabaja con material que ya contiene información estereoscópica. La calibración modifica el encuadre en pantalla. La disparidad del contenido, el desplazamiento digital y la distancia interpupilar física son parámetros distintos. SBS admite dos mitades de ancho igual. En imágenes puedes seleccionar Full-SBS o Half-SBS para interpretar la proporción por ojo. La compatibilidad de MP4 depende de los códecs del navegador. El visor Cardboard presenta dos perspectivas fijas sin seguimiento de movimiento. El Studio no requiere conexión para procesar el medio una vez cargados sus recursos.
 
 ## Matriz de implementación
 

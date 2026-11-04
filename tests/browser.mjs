@@ -4,6 +4,7 @@ import { readFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { extname, join, resolve, sep } from 'node:path';
 import { chromium, devices } from 'playwright-core';
+import { checkImageCalibration, loadHalfSBS } from './calibration-checks.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const prefix = '/StereoVision-Studio-3D/';
@@ -118,7 +119,7 @@ async function auditContext(context, problems, origin) {
       revoke(url);
     };
     CanvasRenderingContext2D.prototype.drawImage = function (source, ...args) {
-      if (this.canvas.id === 'screen' && source instanceof HTMLCanvasElement) {
+      if (this.canvas.id === 'screen') {
         window.testDraws.push({ source, geometry: args, time: window.testVideos.at(-1)?.currentTime });
         if (window.testDraws.length > 24) window.testDraws.shift();
       }
@@ -163,6 +164,9 @@ try {
   assert(anaglyph.equals(await page.locator('#screen').screenshot()), 'restablecer restaura la imagen anaglifo');
   console.log('P-02 PASS: escala, brillo, contraste y restauración verificados en píxeles');
 
+  await page.locator('[data-mode="image"]').click();
+  assert(await page.locator('#horizontal-number').isDisabled());
+  assert(await page.locator('#sbsType').isDisabled());
   await load(page, 'image', 'orbital-sbs.png');
   const original = await sampleEyes(page);
   assert(pixelDistance(original[0], original[1]) > 1);
@@ -181,6 +185,7 @@ try {
   const restored = await sampleEyes(page);
   assert(pixelDistance(restored[0], original[0]) < 0.5 && pixelDistance(restored[1], original[1]) < 0.5);
   console.log('P-03 PASS: vistas distintas, intercambio por muestras de píxeles, calibración y restauración');
+  await checkImageCalibration(page, evidence);
 
   await load(page, 'video', 'orbital-sbs.mp4');
   const initial = await readVideo(page);
@@ -268,10 +273,19 @@ try {
   await screenshot(phone, '06-movil-inicio', true);
   await load(phone, 'image', 'orbital-sbs.png');
   await screenshot(phone, '06-movil-imagen-sbs', true);
+  await loadHalfSBS(phone);
   await range(phone, 'horizontal', 8);
   await range(phone, 'vertical', 4);
   await range(phone, 'scale', 135);
+  await phone.locator('#moveX-number').fill('6.2');
+  await phone.locator('#moveX-number').press('Tab');
+  await phone.locator('#moveY-number').fill('-3.4');
+  await phone.locator('#moveY-number').press('Tab');
+  await phone.locator('#sbsType').selectOption('half');
+  await phone.getByText('Alineación', { exact: true }).tap();
+  await phone.getByText('Alineación', { exact: true }).tap();
   await phone.locator('#swap').tap();
+  await phone.screenshot({ path: join(evidence, '10-calibracion-movil.png'), fullPage: true });
   const studioEyes = await fingerprints(phone);
   await phone.locator('#vr').tap();
   assert(!(await phone.locator('#reset').isVisible()));
@@ -288,6 +302,9 @@ try {
   assert.equal(await phone.locator('#scale').inputValue(), '135');
   assert.equal(await phone.locator('#horizontal').inputValue(), '8');
   assert.equal(await phone.locator('#vertical').inputValue(), '4');
+  assert.equal(await phone.locator('#moveX-number').inputValue(), '6.2');
+  assert.equal(await phone.locator('#moveY-number').inputValue(), '-3.4');
+  assert.equal(await phone.locator('#sbsType').inputValue(), 'half');
   assert(await phone.locator('#swap').isChecked());
   await phone.setViewportSize({ width: 390, height: 664 });
   assert(await phone.evaluate(() => document.documentElement.scrollWidth === innerWidth));
