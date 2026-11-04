@@ -95,7 +95,9 @@ export async function checkImageCalibration(page, evidence) {
   await page.locator('#reset').click();
 
   // Encode an actual Half-SBS from the source without changing the per-eye scene.
+  await page.locator('#moveX-number').fill('8.3');
   await loadHalfSBS(page);
+  assert.equal(await page.locator('#moveX-number').inputValue(), '0');
   const compressedFull = await geometry(page);
   await page.locator('#sbsType').selectOption('half');
   const corrected = await geometry(page);

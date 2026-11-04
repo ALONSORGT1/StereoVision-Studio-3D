@@ -105,9 +105,9 @@ const imagePanel = new ImageCalibrationPanel($('controls'), (patch) => {
   updateCalibration();
 });
 
-function updateCalibration() {
+function updateCalibration(force = false) {
   if (mode === 'image') {
-    imagePanel.update(settings);
+    imagePanel.update(settings, force);
     renderer.setCalibration(settings);
     return;
   }
@@ -237,7 +237,7 @@ async function importFile(file, demo) {
     settings = defaults();
     $('screen').hidden = false;
     renderer.setMedia(media);
-    updateCalibration();
+    updateCalibration(true);
   } catch (error) {
     if (token !== request) return;
     errorMessage(error.message);
@@ -270,7 +270,7 @@ viewport.addEventListener('drop', (event) => {
 });
 $('reset').addEventListener('click', () => {
   settings = defaults();
-  updateCalibration();
+  updateCalibration(true);
 });
 $('play').addEventListener('click', () => {
   errorMessage();

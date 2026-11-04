@@ -129,12 +129,12 @@ export class ImageCalibrationPanel {
     return row;
   }
 
-  update(settings) {
+  update(settings, force = false) {
     for (const [key, field] of this.#fields) {
       if (field.slider) {
         field.slider.value = settings[key];
         field.slider.setAttribute('aria-valuetext', settings[key] + ' %');
-        if (document.activeElement !== field.number) field.number.value = settings[key];
+        if (force || document.activeElement !== field.number) field.number.value = settings[key];
       }
       if (field.select) field.select.value = settings[key];
       if (field.checkbox) field.checkbox.checked = settings[key];
