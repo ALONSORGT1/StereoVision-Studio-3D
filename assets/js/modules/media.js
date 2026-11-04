@@ -12,8 +12,8 @@ function tag(bytes, offset, length = 4) {
 }
 
 // Signatures are MIME hints, never an admission test. The browser decodes the file.
-async function contentType(file) {
-  const bytes = new Uint8Array(await file.slice(0, 64).arrayBuffer());
+function contentType(file, buffer) {
+  const bytes = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 64));
   if (bytes[0] === 0xff && bytes[1] === 0xd8) return 'image/jpeg';
   if (tag(bytes, 0, 8) === '\x89PNG\r\n\x1a\n') return 'image/png';
   if (tag(bytes, 0) === 'RIFF' && tag(bytes, 8) === 'WEBP') return 'image/webp';
@@ -25,11 +25,9 @@ async function contentType(file) {
 }
 
 export function acceptFor(mode) {
-  if (mode === 'video') return 'video/*,.mp4,.m4v,.mov,.webm,.ogv';
-  if (mode === 'anaglyph' || mode === 'image') {
-    return 'image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.avif,.heic,.heif,.tif,.tiff';
-  }
-  return '';
+  // Use the general document picker instead of Android's photo/video provider.
+  // Native decoding still validates the selected content for its module.
+  return ['anaglyph', 'image', 'video'].includes(mode) ? '*/*' : '';
 }
 
 function abortError() {
@@ -117,14 +115,21 @@ export class MediaLoader {
     let asset;
     try {
       if (!acceptFor(mode)) throw new Error('Elige un módulo antes de importar un archivo.');
-      if (!file.size) throw new Error('El archivo está vacío. Selecciona una copia completa.');
-      let type;
+      // Start the full read in the change/drop event call stack, before touching
+      // size, lastModified, slice(), or a file-backed URL. Android content URIs
+      // can invalidate reads once their snapshot metadata has been queried.
+      let bytes;
       try {
-        type = await contentType(file);
+        bytes = await file.arrayBuffer();
       } catch {
-        throw new Error('No se pudo leer el archivo. Comprueba que esté descargado en el dispositivo y vuelve a seleccionarlo.');
+        throw new Error('El selector del sistema no permitió leer el archivo. Vuelve a elegirlo desde Archivos o Descargas.');
       }
       if (signal.aborted) return null;
+      if (!bytes.byteLength) throw new Error('El archivo está vacío. Selecciona una copia completa.');
+      const type = contentType(file, bytes);
+      // Only owned memory reaches the decoder. The provider-backed File is not
+      // consulted again during playback, rendering or metadata display.
+      file = new File([bytes], file.name, { type });
       const isVideo = mode === 'video';
       const element = isVideo ? document.createElement('video') : new Image();
       if (isVideo) {
@@ -132,25 +137,9 @@ export class MediaLoader {
         element.playsInline = true;
         element.disablePictureInPicture = true;
       }
-      const url = URL.createObjectURL(file.type === type ? file : file.slice(0, file.size, type));
+      const url = URL.createObjectURL(file);
       asset = { element, url, mode, file };
-      try {
-        await waitUntilReadable(element, url, isVideo, signal);
-      } catch (error) {
-        if (signal.aborted || error.name === 'TimeoutError') throw error;
-        // A file-backed URL may become unreadable while its picker or cloud source
-        // changes. Retry once from an owned byte snapshot with the normalized MIME.
-        let bytes;
-        try {
-          bytes = await file.arrayBuffer();
-        } catch {
-          throw new Error('No se pudo leer el archivo completo. Descárgalo al dispositivo y vuelve a seleccionarlo.');
-        }
-        if (signal.aborted) return null;
-        release(asset);
-        asset.url = URL.createObjectURL(new Blob([bytes], { type }));
-        await waitUntilReadable(element, asset.url, isVideo, signal);
-      }
+      await waitUntilReadable(element, url, isVideo, signal);
       if (signal.aborted) return null;
 
       asset.width = isVideo ? element.videoWidth : element.naturalWidth;

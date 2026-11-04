@@ -1,4 +1,4 @@
-import { videoErrorMessage } from './media.js';
+import { videoErrorMessage } from './media.js?v=android-file-read-2';
 
 const events = ['play', 'playing', 'pause', 'ended', 'seeking', 'seeked', 'timeupdate',
   'durationchange', 'volumechange', 'waiting', 'canplay', 'error'];

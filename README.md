@@ -34,9 +34,13 @@ La decodificación nativa del navegador determina si se puede abrir el archivo. 
 
 En SBS se calculan ambas mitades mediante coordenadas fraccionarias cuando el ancho es impar. El archivo conserva sus píxeles y proporción. Para MP4 se usa el demultiplexor del navegador, que admite las estructuras de contenedor que pueda interpretar. La compatibilidad del códec sigue dependiendo del navegador y del dispositivo. H.264 con audio AAC es una opción habitual para MP4. HEIC/HEIF, TIFF y otros formatos pueden necesitar conversión a JPG, PNG o WebP cuando el navegador no los admita.
 
-Si falla la lectura de la URL inicial, el Studio realiza un único reintento desde una copia de los bytes en memoria. Esto permite separar la decodificación de la referencia al archivo seleccionado. Al sustituir el contenido se liberan ambas URL cuando corresponde. Los errores distinguen archivo vacío, lectura desde almacenamiento, espera agotada y formato o códec incompatible. Un archivo inválido mantiene disponible el medio anterior.
+Al seleccionar un archivo, el Studio inicia inmediatamente la lectura completa de sus bytes dentro del evento de selección. Después crea una copia propia en memoria, determina el MIME y la entrega al decodificador. El tamaño y las cabeceras se examinan sobre esa copia. El selector conserva la selección hasta terminar la importación. Esto evita depender de la referencia temporal del proveedor Android durante el renderizado o la reproducción.
 
-El tiempo inicial de lectura es de hasta 60 segundos. Conviene seleccionar archivos que estén descargados en el dispositivo. Un video con dimensiones válidas puede abrirse mientras el navegador aún determina su duración. En ese caso se muestra un guion para la duración y la búsqueda usa los intervalos disponibles del medio.
+El selector solicita todos los archivos para usar la ruta general de documentos en Android. La decodificación valida el contenido correspondiente al módulo. Esta estrategia responde a los fallos de lectura de proveedores Android documentados por Chromium al consultar metadatos antes de leer los bytes. [Reporte de Chromium](https://issues.chromium.org/issues/40123366)
+
+Al sustituir el contenido se libera la URL de la copia anterior. Los errores distinguen archivo vacío, lectura desde almacenamiento, espera agotada y formato o códec incompatible. Un archivo inválido mantiene disponible el medio anterior. La copia completa consume memoria proporcional al archivo seleccionado, lo que debe tenerse en cuenta con videos grandes en teléfonos.
+
+La espera de decodificación es de hasta 60 segundos. Un video con dimensiones válidas puede abrirse mientras el navegador aún determina su duración. En ese caso se muestra un guion para la duración y la búsqueda usa los intervalos disponibles del medio.
 
 ## Calibración de anaglifo
 

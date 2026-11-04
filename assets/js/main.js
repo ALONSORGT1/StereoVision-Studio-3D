@@ -1,7 +1,7 @@
-import { MediaLoader, acceptFor } from './modules/media.js';
+import { MediaLoader, acceptFor } from './modules/media.js?v=android-file-read-2';
 import { StereoRenderer } from './modules/renderer.js';
 import { calibrationControls, defaults } from './modules/calibration.js';
-import { VideoPlayback } from './modules/playback.js';
+import { VideoPlayback } from './modules/playback.js?v=android-file-read-2';
 import { VRPresentation } from './modules/vr.js';
 import { CalibrationPanel } from './modules/calibration-panel.js';
 
@@ -260,9 +260,12 @@ async function importFile(file, demo) {
 
 for (const button of buttons) button.addEventListener('click', () => chooseMode(button.dataset.mode));
 for (const id of ['import', 'replace']) $(id).addEventListener('click', () => $('file').click());
-$('file').addEventListener('change', ({ target }) => {
-  importFile(target.files[0]);
-  target.value = '';
+$('file').addEventListener('change', async ({ target }) => {
+  const selected = target.files[0];
+  await importFile(selected);
+  // Do not revoke the picker's selection while its provider is still being read.
+  // A later selection may already be loading when an older request completes.
+  if (target.files[0] === selected) target.value = '';
 });
 const viewport = $('viewport');
 viewport.addEventListener('dragover', (event) => {

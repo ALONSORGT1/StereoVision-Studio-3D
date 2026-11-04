@@ -104,3 +104,18 @@ Las pruebas de tests/import-checks.mjs cargan archivos reales mediante el mismo 
 En video se comprobaron el MP4 H.264 de referencia, una variante válida con un átomo free de tamaño extendido antes de ftyp y un archivo M4V con MIME genérico. Las pruebas forzaron un fallo inicial de una URL respaldada por File en los tres módulos y comprobaron la recuperación desde la copia de bytes. Los archivos incompletos siguen produciendo errores recuperables.
 
 Las muestras adicionales se regeneran mediante python tests/generate-import-fixtures.py con imageio-ffmpeg instalado. La suite completa sigue verificando calibración, restablecimiento, sustitución, reproducción y VR. La compatibilidad de archivos particulares depende también de los códecs instalados y del navegador. Los archivos concretos que motivaron el reporte no se proporcionaron para esta revisión.
+
+## Corrección del selector Android
+
+La captura del usuario mostró el error de lectura completa, después de que fallara la URL inicial. Se encontró que la aplicación consultaba size, hacía slice antes de la lectura completa y vaciaba el input inmediatamente. El flujo corregido inicia arrayBuffer dentro de change/drop, antes de consultar metadatos, crea una copia independiente y limpia el selector al terminar. Una selección nueva conserva su input mientras finaliza una anterior. El selector solicita */* para usar la ruta general de documentos. La entrada y los módulos modificados incluyen una versión en la URL para evitar reutilizar el código anterior en caché.
+
+Se añadió una simulación del proveedor Android que invalida el archivo si se consulta size/slice antes de leerlo, si la lectura se inicia fuera del evento o si el input se vacía mientras está pendiente.
+
+| Ejecución | Resultado |
+|---|---|
+| Código anterior b7e8bf3 | Reproduce exactamente «No se pudo leer el archivo completo. Descárgalo al dispositivo y vuelve a seleccionarlo.». Registra dos accesos tempranos a metadatos, una limpieza temprana y una URL del archivo original. |
+| Código corregido | Carga la misma imagen. Registra una lectura completa y cero accesos tempranos, limpiezas tempranas o URL del proveedor. |
+
+La suite local completó las pruebas de ese modelo en anaglifo, imagen SBS y video, así como dos selecciones consecutivas durante la lectura. También completó la matriz de formatos, reproducción, calibración, VR y las seis demos.
+
+El fallo del proveedor está descrito en el [reporte de Chromium](https://issues.chromium.org/issues/40123366). La prueba automatizada modela ese comportamiento en Chrome de escritorio. El teléfono físico del usuario sigue pendiente de comprobación.
