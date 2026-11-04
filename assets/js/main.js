@@ -1,7 +1,7 @@
-import { MediaLoader, acceptFor } from './modules/media.js?v=android-file-read-2';
+import { MediaLoader, acceptFor } from './modules/media.js?v=demo-stream-1';
 import { StereoRenderer } from './modules/renderer.js';
 import { calibrationControls, defaults } from './modules/calibration.js';
-import { VideoPlayback } from './modules/playback.js?v=android-file-read-2';
+import { VideoPlayback } from './modules/playback.js?v=demo-stream-1';
 import { VRPresentation } from './modules/vr.js';
 import { CalibrationPanel } from './modules/calibration-panel.js';
 
@@ -178,9 +178,12 @@ function showMedia() {
   $('reset').disabled = !media;
   $('replace').textContent = media ? 'Sustituir archivo' : 'Importar archivo';
   $('filename').textContent = media?.file.name ?? 'Sin archivo';
-  $('metadata').textContent = media ? media.width + ' × ' + media.height + ' px · ' +
-    new Intl.NumberFormat('es-MX', { style: 'unit', unit: 'megabyte', maximumFractionDigits: 2 })
-      .format(media.file.size / 1e6) : '';
+  $('metadata').textContent = media ? media.width + ' × ' + media.height + ' px' : '';
+  if (media && Number.isFinite(media.file.size)) {
+    $('metadata').append(' · ' + new Intl.NumberFormat('es-MX', {
+      style: 'unit', unit: 'megabyte', maximumFractionDigits: 2,
+    }).format(media.file.size / 1e6));
+  }
   $('calibration-hint').textContent = media ? 'Los ajustes se aplican a la vista en tiempo real.' :
     'Importa un archivo para activar los instrumentos.';
   $('status').textContent = loading ? 'Validando archivo…' : media ? 'Contenido listo' : 'En espera de archivo';
@@ -223,22 +226,28 @@ async function importFile(file, demo) {
   $('vr').disabled = true;
   errorMessage();
   try {
-    if (demo) {
-      const name = demo + (mode === 'video' ? '.mp4' : '.jpg');
-      demoFetch = new AbortController();
-      try {
-        const response = await fetch(new URL('../media/' + name, import.meta.url), {
-          signal: demoFetch.signal,
-        });
-        if (!response.ok) throw new Error('Demo no disponible');
-        const blob = await response.blob();
-        file = new File([blob], name, { type: blob.type });
-      } catch {
-        throw new Error('No se pudo cargar la demo. Vuelve a intentarlo o importa un archivo local.');
+    let candidate;
+    if (demo && mode === 'video') {
+      const name = demo + '.mp4';
+      candidate = await loader.loadVideoDemo(new URL('../media/' + name + '?v=demo-stream-1', import.meta.url), name);
+    } else {
+      if (demo) {
+        const name = demo + '.jpg';
+        demoFetch = new AbortController();
+        try {
+          const response = await fetch(new URL('../media/' + name, import.meta.url), {
+            signal: demoFetch.signal,
+          });
+          if (!response.ok) throw new Error('Demo no disponible');
+          const blob = await response.blob();
+          file = new File([blob], name, { type: blob.type });
+        } catch {
+          throw new Error('No se pudo cargar la demo. Vuelve a intentarlo o importa un archivo local.');
+        }
+        if (token !== request) return;
       }
-      if (token !== request) return;
+      candidate = await loader.load(file, mode);
     }
-    const candidate = await loader.load(file, mode);
     if (!candidate || token !== request) return;
     media = candidate;
     settings = defaults();

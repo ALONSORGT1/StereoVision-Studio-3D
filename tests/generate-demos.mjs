@@ -38,7 +38,14 @@ try {
     if (kind !== 'video') {
       await writeFile(new URL(name+'.jpg',directory),await capture(0));
     } else {
-      const encoder = spawn(ffmpeg,['-hide_banner','-loglevel','error','-y','-threads','2','-f','image2pipe','-framerate','24','-c:v','mjpeg','-i','pipe:0','-c:v','libx264','-threads','4','-preset','fast','-crf','21','-pix_fmt','yuv420p','-movflags','+faststart',fileURLToPath(new URL(name+'.mp4',directory))],{stdio:['pipe','inherit','inherit']});
+      const encoder = spawn(ffmpeg,[
+        '-hide_banner','-loglevel','error','-y','-threads','2',
+        '-f','image2pipe','-framerate','24','-c:v','mjpeg','-i','pipe:0',
+        '-an','-c:v','libx264','-threads','4','-preset','slow','-crf','27',
+        '-maxrate','1800k','-bufsize','3600k','-g','24','-keyint_min','24','-sc_threshold','0',
+        '-pix_fmt','yuv420p','-movflags','+faststart',
+        fileURLToPath(new URL(name+'.mp4',directory)),
+      ],{stdio:['pipe','inherit','inherit']});
       const completed = once(encoder,'exit');
       try {
         for(let i=0;i<360;i++){

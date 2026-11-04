@@ -119,3 +119,20 @@ Se añadió una simulación del proveedor Android que invalida el archivo si se 
 La suite local completó las pruebas de ese modelo en anaglifo, imagen SBS y video, así como dos selecciones consecutivas durante la lectura. También completó la matriz de formatos, reproducción, calibración, VR y las seis demos.
 
 El fallo del proveedor está descrito en el [reporte de Chromium](https://issues.chromium.org/issues/40123366). La prueba automatizada modela ese comportamiento en Chrome de escritorio. El teléfono físico del usuario sigue pendiente de comprobación.
+
+## Inicio progresivo de las demos de video
+
+La versión anterior descargaba cada MP4 entero con fetch, lo convertía a Blob/File y volvía a copiar sus bytes antes de prepararlo. Con caché desactivada, 4 Mbps de descarga y 80 ms de latencia configurados en Chrome, GitHub Pages tardó 16.777 ms para Cañón y 18.131 ms para Metrópolis.
+
+La nueva ruta entrega la URL publicada al mismo cargador multimedia. El elemento video solicita sus datos progresivamente y el resto del Studio utiliza los mismos controles, calibración, reloj y raster compartido por los ojos. La importación de archivos locales conserva la captura inmediata de bytes. La cancelación de una demo limpia el elemento de video y detiene su lectura.
+
+Se recodificaron los dos recursos con H.264, CRF 27, límite de tasa, GOP de un segundo y faststart. Los tamaños bajaron de 8.028.357 a 3.531.945 bytes y de 8.677.249 a 3.547.880 bytes. La comparación SSIM con las versiones previas dio 0,979410 y 0,982930. Se inspeccionaron visualmente fotogramas de ambos y se conservan 360 fotogramas, 1920 × 540, 24 FPS y 15,00 segundos.
+
+tests/video-startup-checks.mjs comprueba ambos videos con caché desactivada y red limitada a 4 Mbps / 80 ms. Mide el tiempo hasta el primer fotograma visible, comprueba que las peticiones son de tipo media con rangos de bytes y que el código no lee la demo como File. También verifica reproducción, búsqueda a 10 segundos y cancelación al seleccionar otra demo.
+
+| Servidor local bajo la red limitada | Cañón | Metrópolis |
+|---|---|---|
+| Escritorio | 725 ms | 788 ms |
+| Móvil emulado | 556 ms | 782 ms |
+
+El primer fotograma apareció con entre 0,6 y 1,2 segundos de contenido almacenado en búfer. Las cifras corresponden al entorno medido y pueden variar según la conexión, caché y dispositivo. El servidor de pruebas implementa respuestas HTTP 206 para reproducir la carga por rangos de GitHub Pages.

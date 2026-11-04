@@ -7,6 +7,7 @@ import { chromium, devices } from 'playwright-core';
 import { checkImageCalibration, checkTouchSlider, loadHalfSBS } from './calibration-checks.mjs';
 import { checkAnaglyphCalibration, checkAnaglyphTouch } from './anaglyph-checks.mjs';
 import { checkImports } from './import-checks.mjs';
+import { checkVideoStartup } from './video-startup-checks.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const prefix = '/StereoVision-Studio-3D/';
@@ -23,6 +24,23 @@ const server = createServer(async (request, response) => {
     const path = resolve(repo, pathname.slice(prefix.length) || 'index.html');
     if (!pathname.startsWith(prefix) || !path.startsWith(resolve(repo) + sep)) throw new Error();
     const body = await readFile(path);
+    if (extname(path) === '.mp4' && request.headers.range) {
+      const range = /^bytes=(\d+)-(\d*)$/.exec(request.headers.range);
+      if (!range) throw new Error('Invalid byte range');
+      const start = Number(range[1]);
+      const end = Math.min(Number(range[2] || body.length - 1), body.length - 1);
+      if (start > end) {
+        response.writeHead(416, { 'content-range': 'bytes */' + body.length }).end();
+        return;
+      }
+      response.writeHead(206, {
+        'content-type': 'video/mp4', 'accept-ranges': 'bytes',
+        'content-range': 'bytes ' + start + '-' + end + '/' + body.length,
+        'content-length': end - start + 1,
+      });
+      response.end(body.subarray(start, end + 1));
+      return;
+    }
     response.writeHead(200, { 'content-type': types[extname(path)] || 'application/octet-stream' });
     response.end(body);
   } catch {
@@ -367,8 +385,14 @@ try {
       await page.waitForFunction((name) => document.getElementById('filename').textContent === name,
         scene + (mode === 'video' ? '.mp4' : '.jpg'), { timeout: 120_000 });
       assert(await page.locator('#screen').isVisible());
-      if (previousDemo) {
+      if (previousDemo && mode !== 'video') {
         assert((await page.evaluate(() => window.testReleased.length)) > releases);
+      }
+      if (previousDemo && mode === 'video') {
+        assert(await page.evaluate(() => {
+          const previous = window.testVideos.at(-2);
+          return previous.paused && !previous.getAttribute('src');
+        }));
       }
       previousDemo = true;
       if (mode === 'video') {
@@ -384,6 +408,8 @@ try {
     }
   }
   console.log('Demos PASS: seis muestras integradas y ambos videos reproducibles');
+  await checkVideoStartup(browser, url);
+  await checkVideoStartup(browser, url, true);
   assert.deepEqual(problems, []);
   console.log(process.env.STUDIO_URL
     ? 'P-09 PASS: URL configurada sin errores de red o consola en escritorio y móvil emulado'

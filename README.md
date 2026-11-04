@@ -20,6 +20,10 @@ Selecciona un módulo y abre una escena en **Demos del módulo**.
 
 Los recursos son originales del proyecto. Las seis escenas y sus miniaturas se renderizan con Three.js desde geometría y materiales propios, sin modelos, fotografías, texturas ni pistas externas. Cada par usa cámaras paralelas con desplazamiento binocular y frústums compensados. En anaglifo, el rojo conserva la luminancia izquierda y verde y azul la derecha. En video, ambas cámaras renderizan la misma escena en el mismo instante y el resultado se codifica como un único MP4 sin audio.
 
+Las demos de video se abren directamente desde su URL mediante un único elemento video. El navegador comienza la lectura progresiva y puede solicitar intervalos de bytes. El visor y el reproductor se activan al disponer de metadatos y fotogramas, sin esperar a que termine la descarga completa. La carga sigue usando el renderizador, la calibración y la gestión de recursos comunes. Al cambiar de demo se detienen la reproducción y la lectura del medio anterior.
+
+Los dos MP4 están optimizados para inicio progresivo, con el índice al principio y un fotograma clave por segundo. Cañón ocupa 3.531.945 bytes y Metrópolis 3.547.880 bytes. Ambos tienen 1920 × 540 píxeles, 24 FPS y 15 segundos. Los archivos locales elegidos desde el selector usan la copia inmediata de bytes que evita el fallo de los proveedores Android.
+
 El generador y Three.js se usan solo en desarrollo. Para reproducir la biblioteca, ejecuta `npm --prefix tests ci` y `node tests/generate-demos.mjs` con Chrome, Python e imageio-ffmpeg instalados. Ejecuta `python tests/verify-demos.py` con NumPy e imageio-ffmpeg para comprobar formatos, duración y diferencias de píxeles, y generar hojas de contacto en `test-results/`.
 
 1. Elige **Anaglifo**, **Imagen SBS** o **Video SBS**. Selecciona un archivo o arrástralo al monitor.

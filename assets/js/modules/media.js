@@ -39,7 +39,9 @@ export function videoErrorMessage(video) {
     case 1:
       return 'La lectura del video se interrumpió. Vuelve a seleccionarlo.';
     case 2:
-      return 'No se pudo leer el video desde el almacenamiento. Comprueba que esté descargado en el dispositivo y vuelve a seleccionarlo.';
+      return video.src.startsWith('http')
+        ? 'No se pudo descargar el video. Revisa tu conexión y vuelve a abrir la demo.'
+        : 'No se pudo leer el video desde el almacenamiento. Comprueba que esté descargado en el dispositivo y vuelve a seleccionarlo.';
     case 3:
       return 'El navegador no pudo decodificar el video. Puede estar incompleto o usar un códec incompatible. Prueba una copia completa o un MP4 con video H.264 y audio AAC.';
     default:
@@ -53,7 +55,7 @@ function release(asset) {
   if (mode === 'video') element.pause();
   element.removeAttribute('src');
   if (mode === 'video') element.load();
-  URL.revokeObjectURL(url);
+  if (url.startsWith('blob:')) URL.revokeObjectURL(url);
 }
 
 function waitUntilReadable(element, url, isVideo, signal) {
@@ -61,7 +63,9 @@ function waitUntilReadable(element, url, isVideo, signal) {
   return new Promise((resolve, reject) => {
     let finished = false;
     let timeout = setTimeout(() => {
-      const error = new Error('La lectura del archivo está tardando demasiado. Comprueba que esté descargado por completo en el dispositivo y vuelve a seleccionarlo.');
+      const error = new Error(url.startsWith('http')
+        ? 'La descarga de la demo está tardando demasiado. Revisa tu conexión y vuelve a abrirla.'
+        : 'La lectura del archivo está tardando demasiado. Comprueba que esté descargado por completo en el dispositivo y vuelve a seleccionarlo.');
       error.name = 'TimeoutError';
       finish(error);
     }, 60_000);
@@ -107,7 +111,15 @@ export class MediaLoader {
   #active = null;
   #pending = null;
 
-  async load(file, mode) {
+  load(file, mode) {
+    return this.#load(file, mode);
+  }
+
+  loadVideoDemo(url, name) {
+    return this.#load({ name }, 'video', String(url));
+  }
+
+  async #load(file, mode, sourceURL = null) {
     this.cancelPending();
     const controller = new AbortController();
     this.#pending = controller;
@@ -115,21 +127,20 @@ export class MediaLoader {
     let asset;
     try {
       if (!acceptFor(mode)) throw new Error('Elige un módulo antes de importar un archivo.');
-      // Start the full read in the change/drop event call stack, before touching
-      // size, lastModified, slice(), or a file-backed URL. Android content URIs
-      // can invalidate reads once their snapshot metadata has been queried.
-      let bytes;
-      try {
-        bytes = await file.arrayBuffer();
-      } catch {
-        throw new Error('El selector del sistema no permitió leer el archivo. Vuelve a elegirlo desde Archivos o Descargas.');
+      if (!sourceURL) {
+        // Local files must be captured before touching their provider metadata.
+        // Published demos instead let the media element request byte ranges.
+        let bytes;
+        try {
+          bytes = await file.arrayBuffer();
+        } catch {
+          throw new Error('El selector del sistema no permitió leer el archivo. Vuelve a elegirlo desde Archivos o Descargas.');
+        }
+        if (signal.aborted) return null;
+        if (!bytes.byteLength) throw new Error('El archivo está vacío. Selecciona una copia completa.');
+        const type = contentType(file, bytes);
+        file = new File([bytes], file.name, { type });
       }
-      if (signal.aborted) return null;
-      if (!bytes.byteLength) throw new Error('El archivo está vacío. Selecciona una copia completa.');
-      const type = contentType(file, bytes);
-      // Only owned memory reaches the decoder. The provider-backed File is not
-      // consulted again during playback, rendering or metadata display.
-      file = new File([bytes], file.name, { type });
       const isVideo = mode === 'video';
       const element = isVideo ? document.createElement('video') : new Image();
       if (isVideo) {
@@ -137,7 +148,7 @@ export class MediaLoader {
         element.playsInline = true;
         element.disablePictureInPicture = true;
       }
-      const url = URL.createObjectURL(file);
+      const url = sourceURL || URL.createObjectURL(file);
       asset = { element, url, mode, file };
       await waitUntilReadable(element, url, isVideo, signal);
       if (signal.aborted) return null;
