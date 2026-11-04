@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { extname, join, resolve, sep } from 'node:path';
 import { chromium, devices } from 'playwright-core';
 import { checkImageCalibration, checkTouchSlider, loadHalfSBS } from './calibration-checks.mjs';
+import { checkAnaglyphCalibration, checkAnaglyphTouch } from './anaglyph-checks.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const prefix = '/StereoVision-Studio-3D/';
@@ -106,6 +107,18 @@ async function auditContext(context, problems, origin) {
     window.testVideos = [];
     window.testReleased = [];
     window.testDraws = [];
+    window.testUploads = 0;
+    window.testTextureReleases = 0;
+    const upload = WebGLRenderingContext.prototype.texImage2D;
+    const releaseTexture = WebGLRenderingContext.prototype.deleteTexture;
+    WebGLRenderingContext.prototype.texImage2D = function (...args) {
+      window.testUploads++;
+      return upload.apply(this, args);
+    };
+    WebGLRenderingContext.prototype.deleteTexture = function (texture) {
+      window.testTextureReleases++;
+      return releaseTexture.call(this, texture);
+    };
     const create = document.createElement.bind(document);
     const revoke = URL.revokeObjectURL.bind(URL);
     const drawImage = CanvasRenderingContext2D.prototype.drawImage;
@@ -163,6 +176,7 @@ try {
   await page.locator('#reset').click();
   assert(anaglyph.equals(await page.locator('#screen').screenshot()), 'restablecer restaura la imagen anaglifo');
   console.log('P-02 PASS: escala, brillo, contraste y restauración verificados en píxeles');
+  await checkAnaglyphCalibration(page, evidence);
 
   await page.locator('[data-mode="image"]').click();
   assert(await page.locator('#horizontal-number').isDisabled());
@@ -319,6 +333,20 @@ try {
   assert(!(await readVideo(phone)).paused);
   await phone.locator('#play').tap();
   console.log('P-08 PASS: móvil emulado, giro, salida táctil y estado SBS preservado sin pantalla completa');
+  await checkAnaglyphTouch(phone, evidence);
+
+  const software = await browser.newContext({ viewport: { width: 1024, height: 768 }, reducedMotion: 'reduce' });
+  await auditContext(software, problems, new URL(url).origin);
+  await software.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+      return type === 'webgl' ? null : original.call(this, type, ...args);
+    };
+  });
+  const cpuPage = await software.newPage();
+  await cpuPage.goto(url);
+  await checkAnaglyphCalibration(cpuPage, evidence, true);
+  await software.close();
 
   for (const [mode, scenes] of [
     ['anaglyph', ['bosque', 'ciudad-nocturna']],

@@ -72,3 +72,25 @@ Las descargas iniciales de los videos de demostración superaron el límite de 3
 
 - [Inspector avanzado en escritorio](evidence/calibracion-avanzada.png)
 - [Inspector avanzado en móvil emulado](evidence/calibracion-movil.png)
+
+## Anaglifo avanzado
+
+La suite incluye tests/anaglyph-checks.mjs. Usa una imagen PNG con fondo RGB conocido y marcadores independientes para rojo y cian. En HTTP local, Chrome 139 completó las siguientes comprobaciones con el renderizador WebGL y con WebGL deshabilitado deliberadamente para usar Canvas.
+
+- Convergencia de −1,2 y +1,2 % y alineación vertical de −1,2 y +1,2 %. Los centroides de los marcadores se desplazan en sentidos opuestos, conservando la otra coordenada.
+- Intensidad roja al 50 % sin cambios en verde/azul, y cian al 50 % sin cambios en rojo.
+- Gamma de 0,5, 1,05 y 2 comparada con los valores RGB calculados mediante la convención documentada.
+- Combinación de desplazamientos, balance y gamma. Rojo y cian aislados conservan exactamente los componentes seleccionados y anulan los demás.
+- Retorno al modo completo y restablecimiento sin acumulación de procesamiento.
+- Restablecimiento individual de los ocho parámetros numéricos y del modo de inspección.
+- Entrada de gamma en pasos de 0,05 y conservación al plegar mediante teclado.
+- Imagen de 4096 × 3072. La instrumentación de texImage2D confirmó que ajustar gamma no vuelve a subir la textura. Los tiempos medidos corresponden al envío síncrono de cambios y no equivalen a una medición de FPS ni de latencia física de la pantalla.
+- Sustitución por una demo con un campo numérico enfocado, restablecimiento de valores y eliminación de la textura anterior.
+- Pulsación táctil del slider gamma en móvil emulado, inspección roja, entrada numérica y restablecimiento global.
+
+También se completó la regresión de escala, brillo, contraste, calibración SBS, video, VR y las seis demos. Los filtros rojo/cian y el confort con gafas físicas siguen pendientes de comprobación presencial.
+
+La prueba adicional de pérdida del contexto WebGL confirmó que el visor continúa mediante Canvas y vuelve al shader después de restaurar el contexto, conservando la representación. El balance por encima de 100 % y la combinación de brillo 115 %, contraste 90 %, intensidades 80/110 % y gamma 1,2 se comparan con valores RGB calculados de antemano.
+
+- [Inspector e inspección roja en escritorio](evidence/anaglifo-inspeccion.png)
+- [Inspector anaglifo en móvil emulado](evidence/anaglifo-movil.png)

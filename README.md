@@ -28,6 +28,29 @@ El generador y Three.js se usan solo en desarrollo. Para reproducir la bibliotec
 4. En video selecciona un MP4 compatible y pulsa **Reproducir**. Usa la línea de tiempo, los saltos de cinco segundos y el volumen. En navegadores con volumen controlado por el sistema, usa los botones físicos para el nivel y el extremo cero del control para silenciar.
 5. Con contenido SBS, pulsa **Visor VR** y coloca el teléfono horizontalmente. Para regresar, toca **Salir de VR**. Puedes usar Esc con teclado. El visor conserva el contenido y la calibración y funciona en la página si el navegador deniega pantalla completa.
 
+## Calibración de anaglifo
+
+El inspector agrupa **Imagen**, **Calibración estereoscópica**, **Balance cromático** e **Inspección**. Las secciones de alineación y balance comienzan plegadas. Los valores se conservan al abrirlas o cerrarlas. Cada parámetro tiene slider, entrada numérica y restablecimiento individual.
+
+| Parámetro | Valor inicial y rango |
+|---|---|
+| Escala, brillo y contraste | 100 %. Conservan sus rangos anteriores de 50–200 %, 50–150 % y 50–150 %. |
+| Gamma | 1,0. De 0,5 a 2,0 en pasos de 0,05. |
+| Convergencia horizontal | 0. De −3 a +3 % del ancho del visor. Un valor positivo mueve el rojo a la derecha y el cian a la izquierda, cada uno por la mitad del desplazamiento relativo. |
+| Alineación vertical | 0. De −2 a +2 % del alto del visor. Un valor positivo baja el rojo y sube el cian, cada uno por la mitad del desplazamiento relativo. |
+| Intensidad roja y cian | 100 %. De 0 a 150 %, independientes. El cian modifica verde y azul conjuntamente. |
+| Inspección | Anaglifo completo, Canal rojo o Canales cian. Las vistas parciales se identifican en el monitor como inspección. |
+
+La textura de la imagen original se carga una vez. El shader calcula el encuadre proporcional y obtiene dos muestras con desplazamientos opuestos. Usa el rojo de la primera y verde/azul de la segunda, con transparencia independiente y margen transparente fuera de la imagen. El muestreo evita que los bordes reaparezcan por el lado contrario.
+
+La canalización trabaja sobre valores RGB normalizados entre 0 y 1. Para cada componente aplica brillo y contraste con `v = clamp((entrada × brillo/100 − 0,5) × contraste/100 + 0,5, 0, 1)`. Después aplica la intensidad `g`. Hasta 100 %, usa `v × g`. Por encima de 100 %, usa `v × g / (1 + v × (g − 1))`, una curva continua que realza los tonos medios conservando los blancos y evita recortes adicionales del balance. La gamma aplica `salida = v^(1/gamma)`. Así, gamma mayor que 1 aclara los tonos medios conservando negro y blanco, mientras el brillo multiplica las intensidades.
+
+La inspección enmascara los componentes que no se están examinando. Volver al anaglifo completo conserva todos los ajustes. El encuadre y los desplazamientos se resuelven en la misma pasada, calculando las coordenadas de origen para cada píxel visible. Cada actualización usa la textura original y el estado actual, sin acumular transformaciones.
+
+El renderizador WebGL conserva programa y buffer y cambia uniformes al calibrar. Al sustituir el archivo elimina su textura y las cachés anteriores. Si WebGL no está disponible o se pierde el contexto, una alternativa Canvas usa muestreo bilineal, tablas de color y una previsualización de hasta 1280 px en su dimensión mayor, con una copia de entrada de hasta 2048 px. La textura WebGL conserva la resolución de entrada hasta el límite que informe la GPU. Esos límites afectan a la previsualización y el archivo original permanece intacto.
+
+Los ajustes operan sobre los componentes ya codificados en el anaglifo. El confort binocular y el resultado con unas gafas concretas requieren validación física. El balance puede compensar diferencias de luminosidad percibida. Las separaciones grandes pueden causar incomodidad visual.
+
 ## Calibración de imágenes SBS
 
 El inspector organiza los ajustes en **Paralaje y tamaño**, **Alineación** y **Formato SBS**. Puedes plegar cada sección conservando los valores y editar los parámetros mediante el slider o el campo numérico. El icono junto a cada ajuste lo restablece individualmente. **Restablecer calibración** recupera todos los valores iniciales.
@@ -52,10 +75,10 @@ Los controles modifican el encuadre y mantienen cada ojo dentro de su región. A
 |---|---|
 | `main.js` | Selección de fuente, coordinación de estado, controles y mensajes del Studio |
 | `media.js` | Validación del formato y decodificación, cancelación de importaciones y liberación de URL locales |
-| `anaglyph.js` | Ajuste proporcional de la vista anaglifo y filtros de brillo y contraste |
+| `anaglyph.js` | Shader anaglifo, procesamiento por componentes, gamma, inspección y alternativa Canvas |
 | `renderer.js` y `sbs.js` | Canvas adaptable, recortes por ojo y composición desde un único fotograma de video |
 | `calibration.js` | Valores iniciales, rangos y escala proporcional |
-| `calibration-panel.js` | Inspector de imágenes SBS, secciones, entradas numéricas y restablecimiento individual |
+| `calibration-panel.js` | Inspector compartido de anaglifo e imágenes SBS, secciones, entradas numéricas y restablecimiento individual |
 | `playback.js` | Fuente temporal nativa, transporte, volumen y estados de reproducción |
 | `vr.js` | Presentación binocular, pantalla completa opcional y retorno al Studio |
 

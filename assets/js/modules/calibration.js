@@ -18,13 +18,36 @@ export const imageCalibrationSections = [
   { label: 'Alineación', controls: [moveX, moveY, offset] },
 ];
 
+export const anaglyphCalibrationSections = [
+  { label: 'Imagen', controls: [
+    { ...scale, basis: '%', description: 'Ajusta el tamaño del anaglifo conservando su proporción.' },
+    { ...brightness, basis: '%', description: 'Multiplica la luminosidad de los tres canales.' },
+    { ...contrast, basis: '%', description: 'Ajusta la separación tonal respecto al gris medio.' },
+    { key: 'gamma', label: 'Gamma', min: 0.5, max: 2, step: 0.05, unit: '', basis: '',
+      description: 'Aplica salida = entrada^(1/gamma). Un valor mayor que 1 aclara los tonos medios.' },
+  ] },
+  { label: 'Calibración estereoscópica', controls: [
+    { key: 'convergence', label: 'Convergencia horizontal', min: -3, max: 3, step: 0.1, unit: '%', basis: '% ancho',
+      description: 'Separación relativa como porcentaje del ancho del visor. Positivo mueve rojo a la derecha y cian a la izquierda.' },
+    { key: 'anaglyphVertical', label: 'Alineación vertical', min: -2, max: 2, step: 0.1, unit: '%', basis: '% alto',
+      description: 'Separación relativa como porcentaje del alto del visor. Positivo baja el rojo y sube el cian.' },
+  ] },
+  { label: 'Balance cromático', controls: [
+    { key: 'redGain', label: 'Intensidad roja', min: 0, max: 150, step: 1, unit: '%', basis: '%',
+      description: 'Ajusta solo el rojo. Por encima de 100 %, realza los tonos medios con una curva que conserva los blancos.' },
+    { key: 'cyanGain', label: 'Intensidad cian', min: 0, max: 150, step: 1, unit: '%', basis: '%',
+      description: 'Ajusta verde y azul juntos. Por encima de 100 %, realza los tonos medios conservando los blancos.' },
+  ] },
+];
+
 export function defaults() {
   return { scale: 100, brightness: 100, contrast: 100, horizontal: 0, vertical: 0,
-    moveX: 0, moveY: 0, sbsType: 'full', swap: false };
+    moveX: 0, moveY: 0, sbsType: 'full', swap: false,
+    convergence: 0, anaglyphVertical: 0, redGain: 100, cyanGain: 100, gamma: 1, inspection: 'full' };
 }
 
 export function calibrationControls(mode) {
-  if (mode === 'anaglyph') return [scale, brightness, contrast];
+  if (mode === 'anaglyph') return anaglyphCalibrationSections.flatMap(section => section.controls);
   if (mode === 'image') return imageCalibrationSections.flatMap(section => section.controls);
   if (mode === 'video') return [scale, horizontal, vertical];
   return [];

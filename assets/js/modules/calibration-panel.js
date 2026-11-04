@@ -1,4 +1,4 @@
-import { defaults, imageCalibrationSections } from './calibration.js';
+import { defaults, imageCalibrationSections, anaglyphCalibrationSections } from './calibration.js';
 
 function resetButton(label, onReset) {
   const button = document.createElement('button');
@@ -23,11 +23,12 @@ function section(label) {
 
 function normalize(value, control) {
   const clamped = Math.max(control.min, Math.min(control.max, value));
-  return Number((Math.round(clamped / control.step) * control.step).toFixed(1));
+  const precision = control.step.toString().split('.')[1]?.length ?? 0;
+  return Number((Math.round(clamped / control.step) * control.step).toFixed(precision));
 }
 
 // The panel emits changes. The Studio owns the single calibration state.
-export class ImageCalibrationPanel {
+export class CalibrationPanel {
   #container;
   #onChange;
   #fields = new Map();
@@ -37,14 +38,26 @@ export class ImageCalibrationPanel {
     this.#onChange = onChange;
   }
 
-  mount() {
+  mount(mode) {
     this.#fields.clear();
     this.#container.replaceChildren();
     this.#container.classList.add('advanced-calibration');
-    for (const group of imageCalibrationSections) {
+    const groups = mode === 'anaglyph' ? anaglyphCalibrationSections : imageCalibrationSections;
+    for (const group of groups) {
       const details = section(group.label);
+      if (mode === 'anaglyph' && group.label !== 'Imagen') details.open = false;
       for (const control of group.controls) details.append(this.#parameter(control));
+      if (group.label === 'Calibración estereoscópica') {
+        const note = document.createElement('p');
+        note.className = 'parameter-help';
+        note.textContent = 'Ajusta en pasos pequeños. Las separaciones grandes pueden causar incomodidad visual.';
+        details.append(note);
+      }
       this.#container.append(details);
+    }
+    if (mode === 'anaglyph') {
+      this.#inspection();
+      return;
     }
 
     const format = section('Formato SBS');
@@ -89,18 +102,42 @@ export class ImageCalibrationPanel {
     this.#container.append(format);
   }
 
+  #inspection() {
+    const details = section('Inspección');
+    const row = document.createElement('div');
+    row.className = 'format-control';
+    const label = document.createElement('label');
+    label.htmlFor = 'inspection';
+    label.textContent = 'Visualización de canales';
+    const select = document.createElement('select');
+    select.id = 'inspection';
+    for (const [value, text] of [['full', 'Anaglifo completo'], ['red', 'Canal rojo'], ['cyan', 'Canales cian']]) {
+      select.add(new Option(text, value));
+    }
+    select.addEventListener('change', () => this.#onChange({ inspection: select.value }));
+    const help = document.createElement('p');
+    help.id = 'inspection-help';
+    help.className = 'parameter-help';
+    help.textContent = 'Rojo y cian son vistas de diagnóstico de los componentes codificados.';
+    select.setAttribute('aria-describedby', help.id);
+    row.append(label, select, resetButton('Inspección', () => this.#onChange({ inspection: 'full' })), help);
+    details.append(row);
+    this.#fields.set('inspection', { select });
+    this.#container.append(details);
+  }
+
   #parameter(control) {
-    const { key, label, min, max, step, basis, description } = control;
+    const { key, label, min, max, step, basis, description, unit } = control;
     const row = document.createElement('div');
     row.className = 'parameter';
     const name = document.createElement('label');
     name.htmlFor = key;
-    name.textContent = label + ' (' + basis + ')';
+    name.textContent = label + (basis ? ' (' + basis + ')' : '');
     const slider = document.createElement('input');
     Object.assign(slider, { type: 'range', id: key, min, max, step, title: description });
     const value = document.createElement('input');
     Object.assign(value, { type: 'number', id: key + '-number', min, max, step, title: description });
-    value.setAttribute('aria-label', label + ' (' + basis + '), valor numérico');
+    value.setAttribute('aria-label', label + (basis ? ' (' + basis + ')' : '') + ', valor numérico');
     const hint = document.createElement('span');
     hint.id = key + '-help';
     hint.className = 'sr-only';
@@ -110,7 +147,7 @@ export class ImageCalibrationPanel {
     const valueWrap = document.createElement('span');
     valueWrap.className = 'parameter-value';
     const percent = document.createElement('span');
-    percent.textContent = '%';
+    percent.textContent = unit;
     percent.setAttribute('aria-hidden', 'true');
     valueWrap.append(value, percent);
 
@@ -125,7 +162,7 @@ export class ImageCalibrationPanel {
     value.addEventListener('blur', () => { value.value = slider.value; });
     row.append(name, slider, valueWrap,
       resetButton(label, () => this.#onChange({ [key]: defaults()[key] })), hint);
-    this.#fields.set(key, { slider, number: value });
+    this.#fields.set(key, { slider, number: value, unit });
     return row;
   }
 
@@ -133,14 +170,17 @@ export class ImageCalibrationPanel {
     for (const [key, field] of this.#fields) {
       if (field.slider) {
         field.slider.value = settings[key];
-        field.slider.setAttribute('aria-valuetext', settings[key] + ' %');
+        field.slider.setAttribute('aria-valuetext', (settings[key] + ' ' + field.unit).trim());
         if (force || document.activeElement !== field.number) field.number.value = settings[key];
       }
       if (field.select) field.select.value = settings[key];
       if (field.checkbox) field.checkbox.checked = settings[key];
     }
-    this.#container.querySelector('#eye-assignment').textContent = settings.swap
-      ? 'Ojo IZQ ← vista derecha · Ojo DER ← vista izquierda'
-      : 'Ojo IZQ ← vista izquierda · Ojo DER ← vista derecha';
+    const assignment = this.#container.querySelector('#eye-assignment');
+    if (assignment) {
+      assignment.textContent = settings.swap
+        ? 'Ojo IZQ ← vista derecha · Ojo DER ← vista izquierda'
+        : 'Ojo IZQ ← vista izquierda · Ojo DER ← vista derecha';
+    }
   }
 }

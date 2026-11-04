@@ -1,4 +1,4 @@
-import { drawAnaglyph } from './anaglyph.js';
+import { AnaglyphRenderer } from './anaglyph.js';
 import { defaults } from './calibration.js';
 import { drawSBS } from './sbs.js';
 
@@ -15,6 +15,7 @@ export class StereoRenderer {
   #animation = 0;
   #frame = null;
   #frameTime = -1;
+  #anaglyph = null;
 
   constructor(canvas) {
     this.#canvas = canvas;
@@ -44,11 +45,16 @@ export class StereoRenderer {
     this.#animation = 0;
     this.#frame = null;
     this.#frameTime = -1;
+    this.#anaglyph?.setMedia(null);
     this.#media = media;
     this.#canvas.style.removeProperty('filter');
     this.#resize();
 
-    if (media?.mode === 'video') {
+    if (media?.mode === 'anaglyph') {
+      this.#anaglyph ??= new AnaglyphRenderer(() => this.#draw());
+      this.#anaglyph.setMedia(media);
+      this.#draw();
+    } else if (media?.mode === 'video') {
       this.#listeners = new AbortController();
       const { signal } = this.#listeners;
       const frame = document.createElement('canvas');
@@ -111,7 +117,7 @@ export class StereoRenderer {
     context.clearRect(0, 0, canvas.width, canvas.height);
     const media = this.#media;
     if (media?.mode === 'anaglyph') {
-      drawAnaglyph(context, canvas, media, this.#settings);
+      this.#anaglyph.draw(context, canvas, this.#settings);
     } else if (media?.mode === 'image') {
       drawSBS(context, media.element, media.width, media.height, this.#settings, this.#vr);
     } else if (media?.mode === 'video' && this.#frame.ready) {
@@ -123,6 +129,7 @@ export class StereoRenderer {
 
   destroy() {
     this.setMedia(null);
+    this.#anaglyph?.destroy();
     this.#observer.disconnect();
   }
 }

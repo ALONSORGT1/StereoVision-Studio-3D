@@ -49,3 +49,21 @@ La revisión de Emil Design Engineering y Review Animations se aplicó a los aju
 | Sin indicador de expansión | Flecha con transición de transform de 120 ms solo por puntero fino y sin movimiento reducido | Expresa el estado sin animar el alto del panel ni retrasar el visor |
 
 El lienzo y los valores se actualizan directamente. Las activaciones por teclado y el movimiento reducido mantienen el plegado inmediato. La inspección visual incluyó el panel abierto en escritorio y móvil emulado, y se comprobó que no aparece desbordamiento horizontal en 320, 768, 1024 y 1440 px.
+
+## Inspector avanzado de anaglifo
+
+Se reutilizaron las secciones, campos, sliders y botones de calibración de Imagen SBS. El componente compartido admite unidades vacías para gamma y normaliza los valores según la precisión de cada paso, incluido 0,05. El anaglifo presenta Imagen e Inspección abiertas y las secciones de calibración y balance plegadas inicialmente.
+
+UI/UX Pro Max se consultó con «numeric input color inspector grouped controls accessibility». Se aplicó la identificación textual del modo de inspección en el selector y en el monitor, además de conservar el contraste y los nombres accesibles. Impeccable orientó la revisión de las cuatro secciones dentro del inspector existente, con los mismos bordes, ritmo vertical y tipografía. Se inspeccionaron capturas de escritorio y móvil con el panel abierto y con valores activos.
+
+La revisión de Emil Design Engineering conserva la interacción ya verificada del inspector compartido.
+
+| Before | After | Why |
+|---|---|---|
+| Tres sliders con valores de salida | Campos numéricos y sliders agrupados en Imagen, calibración, balance e inspección | Reúne los controles relacionados y permite escribir valores precisos |
+| Normalización decimal fija | Precisión derivada del paso de cada parámetro | Conserva incrementos de gamma de 0,05 y los pasos existentes del SBS |
+| Modo anaglifo como única presentación | Selector de diagnóstico y rótulo textual sobre el monitor | Identifica la inspección sin depender del color de la imagen |
+| Ajustes anaglifo en una lista siempre abierta | Secciones secundarias plegadas inicialmente | Reduce la altura inicial del inspector manteniendo visibles los ajustes de imagen |
+| Actualización de imagen por filtro global | Shader con estado actual y respuesta directa a la entrada | Evita movimiento decorativo y mantiene la separación de componentes durante la calibración |
+
+Los controles táctiles conservan objetivos de 44 px y campos de 16 px. El plegado usa detalles nativos, la flecha mantiene la transición breve solo por puntero fino y se respetan las preferencias de movimiento reducido.

@@ -3,7 +3,7 @@ import { StereoRenderer } from './modules/renderer.js';
 import { calibrationControls, defaults } from './modules/calibration.js';
 import { VideoPlayback } from './modules/playback.js';
 import { VRPresentation } from './modules/vr.js';
-import { ImageCalibrationPanel } from './modules/calibration-panel.js';
+import { CalibrationPanel } from './modules/calibration-panel.js';
 
 const $ = (id) => document.getElementById(id);
 const modes = {
@@ -100,14 +100,19 @@ const vr = new VRPresentation($('studio'), {
   },
 });
 
-const imagePanel = new ImageCalibrationPanel($('controls'), (patch) => {
+const calibrationPanel = new CalibrationPanel($('controls'), (patch) => {
   settings = { ...settings, ...patch };
   updateCalibration();
 });
 
 function updateCalibration(force = false) {
-  if (mode === 'image') {
-    imagePanel.update(settings, force);
+  const inspecting = mode === 'anaglyph' && settings.inspection !== 'full';
+  $('inspection-badge').hidden = !inspecting;
+  const inspectionLabel = inspecting
+    ? 'Inspección · ' + (settings.inspection === 'red' ? 'Canal rojo' : 'Canales cian') : '';
+  if ($('inspection-badge').textContent !== inspectionLabel) $('inspection-badge').textContent = inspectionLabel;
+  if (mode === 'image' || mode === 'anaglyph') {
+    calibrationPanel.update(settings, force);
     renderer.setCalibration(settings);
     return;
   }
@@ -121,9 +126,9 @@ function updateCalibration(force = false) {
 
 function makeControls() {
   const controls = $('controls');
-  $('reset').textContent = mode === 'image' ? 'Restablecer calibración' : 'Restablecer ajustes';
-  if (mode === 'image') {
-    imagePanel.mount();
+  $('reset').textContent = mode === 'video' ? 'Restablecer ajustes' : 'Restablecer calibración';
+  if (mode === 'image' || mode === 'anaglyph') {
+    calibrationPanel.mount(mode);
     return;
   }
   controls.classList.remove('advanced-calibration');
